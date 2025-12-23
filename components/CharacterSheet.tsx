@@ -16,6 +16,7 @@ const TABS: TabType[] = ['main', 'combat', 'spells', 'inventory'];
 
 const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCharacterUpdate }) => {
     const [activeTab, setActiveTab] = useState<TabType>('main');
+    const [transitionDirection, setTransitionDirection] = useState<'left' | 'right'>('right');
     const [showAiModal, setShowAiModal] = useState(false);
     
     // Weapon & Armor State management
@@ -337,6 +338,16 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
         setTouchEnd(e.targetTouches[0].clientX);
     };
 
+    const handleTabChange = (newTab: TabType) => {
+        const currentIndex = TABS.indexOf(activeTab);
+        const newIndex = TABS.indexOf(newTab);
+        if (newIndex === currentIndex) return;
+        
+        setTransitionDirection(newIndex > currentIndex ? 'right' : 'left');
+        setActiveTab(newTab);
+        window.scrollTo(0, 0);
+    };
+
     const onTouchEnd = () => {
         if (!touchStart || !touchEnd) return;
         const distance = touchStart - touchEnd;
@@ -344,16 +355,13 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
         const isLeftSwipe = distance > minSwipeDistance;
         const isRightSwipe = distance < -minSwipeDistance;
         
-        if (isLeftSwipe || isRightSwipe) {
-            const currentIndex = TABS.indexOf(activeTab);
-            if (isLeftSwipe && currentIndex < TABS.length - 1) {
-                setActiveTab(TABS[currentIndex + 1]);
-                window.scrollTo(0, 0); // Reset scroll on tab change
-            }
-            if (isRightSwipe && currentIndex > 0) {
-                setActiveTab(TABS[currentIndex - 1]);
-                window.scrollTo(0, 0);
-            }
+        const currentIndex = TABS.indexOf(activeTab);
+
+        if (isLeftSwipe && currentIndex < TABS.length - 1) {
+            handleTabChange(TABS[currentIndex + 1]);
+        }
+        if (isRightSwipe && currentIndex > 0) {
+            handleTabChange(TABS[currentIndex - 1]);
         }
     };
 
@@ -384,6 +392,11 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
     const displayArmorName = activeWeapons.some(w => w.name === 'Shield') && !equippedArmorName.includes('Shield') 
         ? `${equippedArmorName} + Shield` 
         : equippedArmorName;
+
+    // Animation classes based on direction
+    const animationClass = `animate-in fade-in zoom-in-95 duration-300 ease-out fill-mode-forwards ${
+        transitionDirection === 'right' ? 'slide-in-from-right-8' : 'slide-in-from-left-8'
+    }`;
 
     return (
         <div 
@@ -432,11 +445,11 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                     </div>
                 </div>
 
-                <div className="px-4 py-2 space-y-8">
+                <div className="px-4 py-2 space-y-8 overflow-hidden">
                     {/* --- TAB CONTENT --- */}
                     
                     {activeTab === 'main' && (
-                        <div className="space-y-8 animate-in fade-in slide-in-from-right-8 duration-300">
+                        <div key="main" className={`space-y-8 ${animationClass}`}>
                             
                             {/* Level Up Banner */}
                             <button 
@@ -488,7 +501,7 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                                 ))}
                             </div>
 
-                            {/* --- WEAPON SLOTS (Moved UP) --- */}
+                            {/* --- WEAPON SLOTS --- */}
                             <SectionHeader icon={<Swords size={16}/>} title="Weapons" />
                             
                             {/* Main Hand */}
@@ -569,7 +582,7 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                                 </button>
                             )}
 
-                            {/* --- ARMOR SECTION (Moved DOWN) --- */}
+                            {/* --- ARMOR SECTION --- */}
                             <SectionHeader icon={<Shield size={16}/>} title="Defense" />
                             <div className="bg-stone-900 border border-stone-800 rounded-2xl p-4 flex justify-between items-center relative overflow-hidden">
                                 <div>
@@ -595,7 +608,7 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                     )}
 
                     {activeTab === 'combat' && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
+                        <div key="combat" className={`space-y-6 ${animationClass}`}>
                             
                             {/* --- MONK FOCUS POINTS --- */}
                             {character.class === 'Monk' && (
@@ -667,7 +680,7 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                     )}
 
                     {activeTab === 'inventory' && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
+                        <div key="inventory" className={`space-y-6 ${animationClass}`}>
                             <SectionHeader icon={<Backpack size={16}/>} title="Equipment" />
                             <div className="bg-stone-900 border border-stone-800 rounded-2xl overflow-hidden">
                                 {character.equipment.map((item, i) => (
@@ -694,7 +707,7 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                     )}
 
                     {activeTab === 'spells' && (
-                        <div className="h-[50vh] flex flex-col items-center justify-center text-stone-500 animate-in fade-in slide-in-from-right-8 duration-300">
+                        <div key="spells" className={`h-[50vh] flex flex-col items-center justify-center text-stone-500 ${animationClass}`}>
                             <BookOpen size={56} strokeWidth={1} className="mb-6 opacity-30 text-stone-400"/>
                             <p className="font-serif text-2xl text-stone-400 mb-2">Grimoire</p>
                             <p className="text-sm text-stone-600 max-w-[220px] text-center leading-relaxed">
@@ -706,31 +719,30 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
             </div>
 
             {/* --- FOOTER NAVIGATION (Fixed) --- */}
-            <div className="fixed bottom-0 w-full bg-stone-950/95 backdrop-blur-md border-t border-stone-800 pb-safe pt-2 px-2 z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
-                <nav className="flex justify-around items-end h-[70px] pb-2">
+            <div className="fixed bottom-0 w-full bg-stone-950/95 backdrop-blur-md border-t border-stone-800 pb-safe z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+                <nav className="flex justify-around items-center h-[60px] w-full max-w-lg mx-auto px-2">
                     <NavButton 
                         active={activeTab === 'main'} 
-                        onClick={() => setActiveTab('main')} 
-                        icon={<User size={24}/>} 
+                        onClick={() => handleTabChange('main')} 
+                        icon={<User size={22}/>} 
                         label="Hero" 
                     />
                     <NavButton 
                         active={activeTab === 'combat'} 
-                        onClick={() => setActiveTab('combat')} 
-                        icon={<Swords size={24}/>} 
+                        onClick={() => handleTabChange('combat')} 
+                        icon={<Swords size={22}/>} 
                         label="Combat" 
                     />
-                    {/* Swapped Spells and Items */}
                     <NavButton 
                         active={activeTab === 'spells'} 
-                        onClick={() => setActiveTab('spells')} 
-                        icon={<BookOpen size={24}/>} 
+                        onClick={() => handleTabChange('spells')} 
+                        icon={<BookOpen size={22}/>} 
                         label="Spells" 
                     />
                     <NavButton 
                         active={activeTab === 'inventory'} 
-                        onClick={() => setActiveTab('inventory')} 
-                        icon={<Backpack size={24}/>} 
+                        onClick={() => handleTabChange('inventory')} 
+                        icon={<Backpack size={22}/>} 
                         label="Items" 
                     />
                 </nav>
@@ -1342,19 +1354,19 @@ const Badge: React.FC<{ children: React.ReactNode; color?: 'stone' | 'indigo' }>
 const NavButton: React.FC<{ active: boolean; onClick: () => void; icon: React.ReactNode; label: string }> = ({ active, onClick, icon, label }) => (
     <button
         onClick={onClick}
-        className={`relative flex flex-col items-center justify-center w-20 h-16 transition-all duration-300 ${active ? '-translate-y-1' : ''}`}
+        className={`relative flex flex-col items-center justify-center w-20 h-full transition-all duration-300`}
     >
-        {/* Icon Container */}
-        <div className={`p-2 rounded-2xl transition-all duration-500 ease-out ${
+        {/* Icon Container - Removed bg and shadow, added scale */}
+        <div className={`p-2 rounded-2xl transition-all duration-300 ease-out transform ${
             active
-                ? 'bg-gradient-to-br from-amber-900/80 to-stone-900 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)] border border-amber-500/30 translate-y-0'
-                : 'text-stone-500 translate-y-2'
+                ? 'text-amber-500 -translate-y-2 scale-125'
+                : 'text-stone-500'
         }`}>
             {icon}
         </div>
 
         {/* Label */}
-        <span className={`absolute -bottom-1 text-[9px] font-bold tracking-widest uppercase transition-all duration-300 ${
+        <span className={`absolute bottom-1 text-[9px] font-bold tracking-widest uppercase transition-all duration-300 ${
             active ? 'opacity-100 translate-y-0 text-amber-500' : 'opacity-0 translate-y-2'
         }`}>
             {label}
