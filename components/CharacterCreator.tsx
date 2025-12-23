@@ -1,57 +1,142 @@
-
 import React, { useState, useEffect } from 'react';
-import { SPECIES_LIST, CLASS_LIST, BACKGROUNDS_DATA, STANDARD_ARRAY, ABILITY_NAMES, HIT_DIE, CLASS_FEATURES, CLASS_STAT_PRIORITIES, CLASS_DETAILS, SPECIES_DETAILS, DetailData, ALIGNMENTS, LANGUAGES, BackgroundData, CLASS_SKILL_DATA, SKILL_LIST } from '../constants';
+import { SPECIES_LIST, CLASS_LIST, BACKGROUNDS_DATA, STANDARD_ARRAY, ABILITY_NAMES, HIT_DIE, CLASS_FEATURES, CLASS_STAT_PRIORITIES, CLASS_DETAILS, SPECIES_DETAILS, DetailData, ALIGNMENTS, LANGUAGES, BackgroundData, CLASS_SKILL_DATA, SKILL_LIST, CLASS_SAVING_THROWS } from '../constants';
 import { Character, AbilityScores, Ability, Weapon, Skill } from '../types';
 import { generateCharacterName, generateBackstory } from '../services/geminiService';
-import { ChevronRight, Save, Sparkles, Loader2, Wand2, X, Check, GraduationCap } from 'lucide-react';
+import { ChevronRight, Save, Sparkles, Loader2, Wand2, X, Check, GraduationCap, Heart, Shield, Zap, Footprints, Ruler, Star, Medal, Sword, Crown, Scroll, Dna } from 'lucide-react';
 
 interface SelectionModalProps {
     title: string;
     options: string[];
     selected: string;
+    variant: 'class' | 'species' | 'background' | 'simple';
     onSelect: (value: string) => void;
     onClose: () => void;
-    detailsMap?: Record<string, DetailData>;
-    backgroundMap?: Record<string, BackgroundData>;
 }
 
-const SelectionModal: React.FC<SelectionModalProps> = ({ title, options, selected, onSelect, onClose, detailsMap, backgroundMap }) => {
+const SelectionModal: React.FC<SelectionModalProps> = ({ title, options, selected, variant, onSelect, onClose }) => {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
              <div className="absolute inset-0 bg-stone-950/80 backdrop-blur-sm" onClick={onClose} />
-             <div className="bg-stone-900 w-full max-w-md max-h-[80vh] rounded-2xl border border-stone-800 relative z-10 flex flex-col shadow-2xl animate-in zoom-in-95">
-                <div className="p-4 border-b border-stone-800 flex justify-between items-center bg-stone-900 rounded-t-2xl z-20 sticky top-0">
-                    <h3 className="font-bold text-stone-100 text-lg font-serif">{title}</h3>
+             <div className="bg-stone-900 w-full max-w-lg max-h-[85vh] rounded-2xl border border-stone-800 relative z-10 flex flex-col shadow-2xl animate-in zoom-in-95">
+                <div className="p-5 border-b border-stone-800 flex justify-between items-center bg-stone-900 rounded-t-2xl z-20 sticky top-0 shadow-sm">
+                    <h3 className="font-bold text-stone-100 text-xl font-serif">{title}</h3>
                     <button onClick={onClose} className="p-2 hover:bg-stone-800 rounded-full text-stone-500 hover:text-white transition-colors">
                         <X size={20}/>
                     </button>
                 </div>
-                <div className="overflow-y-auto p-2 custom-scrollbar flex-1">
+                <div className="overflow-y-auto p-3 custom-scrollbar flex-1 space-y-2 bg-stone-950/30">
                     {options.map(opt => {
                         const isSelected = selected === opt;
-                        const detail = detailsMap ? detailsMap[opt] : null;
-                        const bgData = backgroundMap ? backgroundMap[opt] : null;
+                        
+                        // Data Retrieval based on Variant
+                        let details: any = {};
+                        if (variant === 'class') {
+                            details = {
+                                desc: CLASS_DETAILS[opt]?.description,
+                                hitDie: HIT_DIE[opt],
+                                saves: CLASS_SAVING_THROWS[opt],
+                                traits: CLASS_DETAILS[opt]?.traits.map(t => t.name).slice(0, 3), // Show first 3 traits
+                                primary: CLASS_STAT_PRIORITIES[opt]?.slice(0, 2)
+                            };
+                        } else if (variant === 'species') {
+                            details = {
+                                desc: SPECIES_DETAILS[opt]?.description,
+                                speed: SPECIES_DETAILS[opt]?.speed,
+                                size: SPECIES_DETAILS[opt]?.size,
+                                traits: SPECIES_DETAILS[opt]?.traits.map(t => t.name)
+                            };
+                        } else if (variant === 'background') {
+                            const bg = BACKGROUNDS_DATA[opt];
+                            details = {
+                                desc: bg?.description,
+                                scores: bg?.scores,
+                                feat: bg?.feat,
+                                featDesc: bg?.featDescription,
+                                skills: bg?.skills
+                            };
+                        }
 
                         return (
                             <button 
                                 key={opt}
                                 onClick={() => onSelect(opt)}
-                                className={`w-full text-left p-4 hover:bg-stone-800 border-b border-stone-800 last:border-0 flex justify-between items-center group transition-colors ${isSelected ? 'bg-stone-800/50' : ''}`}
+                                className={`w-full text-left p-4 rounded-xl border transition-all group relative overflow-hidden ${
+                                    isSelected 
+                                    ? 'bg-stone-800 border-amber-600 ring-1 ring-amber-600/50' 
+                                    : 'bg-stone-900 border-stone-800 hover:border-stone-600 hover:bg-stone-800/50'
+                                }`}
                             >
-                                <div className="flex-1 pr-4">
-                                    <div className={`font-bold text-lg font-serif mb-1 ${isSelected ? 'text-amber-500' : 'text-stone-300 group-hover:text-stone-100'}`}>
-                                        {opt}
-                                    </div>
-                                    {detail && (
-                                        <div className="text-xs text-stone-500 leading-relaxed">{detail.description}</div>
-                                    )}
-                                    {bgData && (
-                                        <div className="text-xs text-stone-500 leading-relaxed">
-                                            <span className="text-stone-400 font-bold">Scores:</span> {bgData.scores.join('/')} • <span className="text-stone-400 font-bold">Feat:</span> {bgData.feat}
+                                {/* Active Indicator */}
+                                {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-600" />}
+
+                                <div className="flex justify-between items-start mb-2 pl-2">
+                                    <div>
+                                        <div className={`font-bold text-lg font-serif ${isSelected ? 'text-amber-500' : 'text-stone-200 group-hover:text-stone-100'}`}>
+                                            {opt}
                                         </div>
+                                        <div className="text-xs text-stone-500 line-clamp-2 leading-relaxed">{details.desc}</div>
+                                    </div>
+                                    {isSelected && <Check size={20} className="text-amber-500 shrink-0" />}
+                                </div>
+
+                                {/* Rich Details Grid */}
+                                <div className="pl-2 mt-3 grid grid-cols-1 gap-2">
+                                    {variant === 'class' && (
+                                        <>
+                                            <div className="flex flex-wrap gap-2 text-xs">
+                                                <span className="flex items-center gap-1 bg-red-950/30 text-red-400 px-2 py-1 rounded border border-red-900/30 font-bold" title="Hit Die">
+                                                    <Heart size={12} fill="currentColor" className="opacity-50"/> d{details.hitDie}
+                                                </span>
+                                                <span className="flex items-center gap-1 bg-indigo-950/30 text-indigo-400 px-2 py-1 rounded border border-indigo-900/30 font-bold" title="Saving Throws">
+                                                    <Shield size={12}/> {details.saves.join('/')}
+                                                </span>
+                                                <span className="flex items-center gap-1 bg-amber-950/30 text-amber-500 px-2 py-1 rounded border border-amber-900/30 font-bold" title="Primary Stats">
+                                                    <Star size={12}/> {details.primary.join('/')}
+                                                </span>
+                                            </div>
+                                            <div className="text-[10px] text-stone-500 mt-1">
+                                                <strong className="text-stone-400">Features:</strong> {details.traits.join(', ')}...
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {variant === 'species' && (
+                                        <>
+                                            <div className="flex gap-2 text-xs">
+                                                <span className="flex items-center gap-1 bg-stone-950 text-stone-400 px-2 py-1 rounded border border-stone-800 font-bold">
+                                                    <Footprints size={12}/> {details.speed} ft
+                                                </span>
+                                                <span className="flex items-center gap-1 bg-stone-950 text-stone-400 px-2 py-1 rounded border border-stone-800 font-bold">
+                                                    <Ruler size={12}/> {details.size}
+                                                </span>
+                                            </div>
+                                            <div className="text-[10px] text-stone-500 mt-1 flex flex-wrap gap-1">
+                                                {details.traits.map((t: string) => (
+                                                    <span key={t} className="bg-stone-800 px-1.5 py-0.5 rounded text-stone-400">{t}</span>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {variant === 'background' && (
+                                        <>
+                                            <div className="flex flex-wrap gap-2 text-xs mb-2">
+                                                <span className="flex items-center gap-1 bg-amber-950/30 text-amber-500 px-2 py-1 rounded border border-amber-900/30 font-bold">
+                                                    <Zap size={12}/> {details.scores.join('/')}
+                                                </span>
+                                                <span className="flex items-center gap-1 bg-purple-950/30 text-purple-400 px-2 py-1 rounded border border-purple-900/30 font-bold">
+                                                    <Medal size={12}/> {details.feat}
+                                                </span>
+                                            </div>
+                                            <div className="text-[10px] text-stone-500 mb-2 leading-relaxed italic border-l-2 border-stone-800 pl-2">
+                                                {details.featDesc}
+                                            </div>
+                                            <div className="text-[10px] text-stone-500">
+                                                <strong className="text-stone-400">Skills:</strong> {details.skills.join(', ')}
+                                            </div>
+                                        </>
                                     )}
                                 </div>
-                                {isSelected && <Check size={20} className="text-amber-500 shrink-0" />}
                             </button>
                         );
                     })}
@@ -299,7 +384,9 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                              {/* Class Selection */}
                              <div>
-                                <label className="block text-stone-400 font-bold mb-2 uppercase text-xs tracking-wider">Class</label>
+                                <label className="block text-stone-400 font-bold mb-2 uppercase text-xs tracking-wider flex items-center gap-2">
+                                    <Crown size={12}/> Class
+                                </label>
                                 <button
                                     onClick={() => setActiveModal('class')}
                                     className="w-full bg-stone-800 border border-stone-700 hover:bg-stone-700 text-left rounded-xl p-4 flex justify-between items-center group transition-all"
@@ -314,7 +401,9 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
 
                             {/* Species Selection */}
                             <div>
-                                <label className="block text-stone-400 font-bold mb-2 uppercase text-xs tracking-wider">Species</label>
+                                <label className="block text-stone-400 font-bold mb-2 uppercase text-xs tracking-wider flex items-center gap-2">
+                                    <Dna size={12}/> Species
+                                </label>
                                 <button
                                     onClick={() => setActiveModal('species')}
                                     className="w-full bg-stone-800 border border-stone-700 hover:bg-stone-700 text-left rounded-xl p-4 flex justify-between items-center group transition-all"
@@ -330,7 +419,9 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
 
                         {/* Background Selection */}
                         <div>
-                            <label className="block text-stone-400 font-bold mb-2 uppercase text-xs tracking-wider">Background</label>
+                            <label className="block text-stone-400 font-bold mb-2 uppercase text-xs tracking-wider flex items-center gap-2">
+                                <Scroll size={12}/> Background
+                            </label>
                             <button
                                 onClick={() => setActiveModal('background')}
                                 className="w-full bg-stone-800 border border-stone-700 hover:bg-stone-700 text-left rounded-xl p-4 flex justify-between items-center group transition-all mb-4"
@@ -351,7 +442,8 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
                                 </div>
                                 <div className="bg-stone-950/50 p-4 rounded-xl border border-stone-800">
                                     <span className="text-stone-500 font-bold text-xs uppercase tracking-wider block mb-1">Origin Feat</span>
-                                    <span className="text-indigo-400 font-bold">{BACKGROUNDS_DATA[background].feat}</span>
+                                    <span className="text-indigo-400 font-bold block mb-1">{BACKGROUNDS_DATA[background].feat}</span>
+                                    <span className="text-xs text-stone-500 leading-snug block">{BACKGROUNDS_DATA[background].featDescription}</span>
                                 </div>
                             </div>
                         </div>
@@ -643,7 +735,7 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
                     title="Choose Class"
                     options={CLASS_LIST}
                     selected={charClass}
-                    detailsMap={CLASS_DETAILS}
+                    variant="class"
                     onSelect={(val) => { setCharClass(val); setActiveModal(null); }}
                     onClose={() => setActiveModal(null)}
                 />
@@ -653,7 +745,7 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
                     title="Choose Species"
                     options={SPECIES_LIST}
                     selected={species}
-                    detailsMap={SPECIES_DETAILS}
+                    variant="species"
                     onSelect={(val) => { setSpecies(val); setActiveModal(null); }}
                     onClose={() => setActiveModal(null)}
                 />
@@ -663,7 +755,7 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
                     title="Choose Background"
                     options={Object.keys(BACKGROUNDS_DATA)}
                     selected={background}
-                    backgroundMap={BACKGROUNDS_DATA}
+                    variant="background"
                     onSelect={(val) => { setBackground(val); setActiveModal(null); }}
                     onClose={() => setActiveModal(null)}
                 />
@@ -673,6 +765,7 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
                     title="Choose Alignment"
                     options={ALIGNMENTS}
                     selected={alignment}
+                    variant="simple"
                     onSelect={(val) => { setAlignment(val); setActiveModal(null); }}
                     onClose={() => setActiveModal(null)}
                 />
@@ -682,6 +775,7 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
                     title="Choose Additional Language"
                     options={LANGUAGES}
                     selected={language}
+                    variant="simple"
                     onSelect={(val) => { setLanguage(val); setActiveModal(null); }}
                     onClose={() => setActiveModal(null)}
                 />
