@@ -1,3 +1,4 @@
+
 export type Ability = 'STR' | 'DEX' | 'CON' | 'INT' | 'WIS' | 'CHA';
 
 export interface AbilityScores {
@@ -15,10 +16,22 @@ export type Skill =
   | 'Nature' | 'Perception' | 'Performance' | 'Persuasion' | 'Religion' 
   | 'Sleight of Hand' | 'Stealth' | 'Survival';
 
+export type WeaponProperty = 'Light' | 'Finesse' | 'Thrown' | 'Two-Handed' | 'Versatile' | 'Reach' | 'Loading' | 'Ammunition' | 'Heavy';
+export type MasteryProperty = 'Cleave' | 'Graze' | 'Nick' | 'Push' | 'Sap' | 'Slow' | 'Topple' | 'Vex';
+
+export interface Weapon {
+  name: string;
+  damage: string;
+  type: string; // damage type
+  properties: WeaponProperty[];
+  mastery: MasteryProperty;
+  equipped: boolean;
+}
+
 export interface Character {
   id: string;
   name: string;
-  species: string; // "Race" is Species in 2024
+  species: string; 
   class: string;
   level: number;
   background: string;
@@ -31,9 +44,11 @@ export interface Character {
   initiative: number;
   proficiencyBonus: number;
   skills: Skill[];
-  equipment: string[];
+  weapons: Weapon[];
+  equipment: string[]; // General gear
   backstory: string;
   features: string[]; // Class features
+  originFeat?: string; // New 2024 Rule
   spellcasting?: {
     ability: Ability;
     slots: { [level: number]: { total: number; used: number } };

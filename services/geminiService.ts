@@ -1,9 +1,8 @@
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { Character, AbilityScores } from '../types';
 
 // Helper to safely get API key
 const getApiKey = () => {
-    // In a real app this would be process.env.API_KEY, but for the prompt context we use it directly as instructed
     return process.env.API_KEY || '';
 };
 
@@ -79,8 +78,20 @@ export const askDndRules = async (query: string): Promise<string> => {
 
     try {
         const prompt = `You are a Dungeon Master rules lawyer for D&D 2024 (5.5e/One D&D). 
-        Answer the following question based on the updated ruleset if possible, otherwise standard 5e.
-        Keep it brief and helpful.
+        You have deep knowledge of the 2024 Player's Handbook.
+        
+        Key 2024 Changes to remember:
+        - "Race" is now "Species".
+        - Backgrounds provide Ability Scores and Origin Feats.
+        - Weapon Mastery properties (Vex, Nick, Sap, etc.) are a core martial mechanic.
+        - "Inspiration" is now "Heroic Inspiration".
+        - Exhaustion uses the new 1-10 scale.
+        - Druids have Wild Resurgence.
+        - Paladins use Lay on Hands as a Bonus Action.
+        - Monks use Focus Points instead of Ki.
+
+        Answer the following question based strictly on the 2024 ruleset. Keep it brief and helpful for a player mid-game.
+        
         Question: ${query}`;
 
         const response = await ai.models.generateContent({
