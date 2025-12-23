@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dnd-companion-v1';
+const CACHE_NAME = 'dnd-companion-v2';
 const urlsToCache = [
   './',
   './index.html',
