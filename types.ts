@@ -53,6 +53,7 @@ export interface Character {
   backstory: string;
   features: string[]; // Class features
   originFeat?: string; // New 2024 Rule
+  currentFocusPoints?: number; // Monk Resource
   spellcasting?: {
     ability: Ability;
     slots: { [level: number]: { total: number; used: number } };

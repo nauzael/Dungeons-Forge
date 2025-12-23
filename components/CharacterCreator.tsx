@@ -5,6 +5,62 @@ import { Character, AbilityScores, Ability, Weapon, Skill } from '../types';
 import { generateCharacterName, generateBackstory } from '../services/geminiService';
 import { ChevronRight, Save, Sparkles, Loader2, Wand2, X, Check, GraduationCap } from 'lucide-react';
 
+interface SelectionModalProps {
+    title: string;
+    options: string[];
+    selected: string;
+    onSelect: (value: string) => void;
+    onClose: () => void;
+    detailsMap?: Record<string, DetailData>;
+    backgroundMap?: Record<string, BackgroundData>;
+}
+
+const SelectionModal: React.FC<SelectionModalProps> = ({ title, options, selected, onSelect, onClose, detailsMap, backgroundMap }) => {
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+             <div className="absolute inset-0 bg-stone-950/80 backdrop-blur-sm" onClick={onClose} />
+             <div className="bg-stone-900 w-full max-w-md max-h-[80vh] rounded-2xl border border-stone-800 relative z-10 flex flex-col shadow-2xl animate-in zoom-in-95">
+                <div className="p-4 border-b border-stone-800 flex justify-between items-center bg-stone-900 rounded-t-2xl z-20 sticky top-0">
+                    <h3 className="font-bold text-stone-100 text-lg font-serif">{title}</h3>
+                    <button onClick={onClose} className="p-2 hover:bg-stone-800 rounded-full text-stone-500 hover:text-white transition-colors">
+                        <X size={20}/>
+                    </button>
+                </div>
+                <div className="overflow-y-auto p-2 custom-scrollbar flex-1">
+                    {options.map(opt => {
+                        const isSelected = selected === opt;
+                        const detail = detailsMap ? detailsMap[opt] : null;
+                        const bgData = backgroundMap ? backgroundMap[opt] : null;
+
+                        return (
+                            <button 
+                                key={opt}
+                                onClick={() => onSelect(opt)}
+                                className={`w-full text-left p-4 hover:bg-stone-800 border-b border-stone-800 last:border-0 flex justify-between items-center group transition-colors ${isSelected ? 'bg-stone-800/50' : ''}`}
+                            >
+                                <div className="flex-1 pr-4">
+                                    <div className={`font-bold text-lg font-serif mb-1 ${isSelected ? 'text-amber-500' : 'text-stone-300 group-hover:text-stone-100'}`}>
+                                        {opt}
+                                    </div>
+                                    {detail && (
+                                        <div className="text-xs text-stone-500 leading-relaxed">{detail.description}</div>
+                                    )}
+                                    {bgData && (
+                                        <div className="text-xs text-stone-500 leading-relaxed">
+                                            <span className="text-stone-400 font-bold">Scores:</span> {bgData.scores.join('/')} • <span className="text-stone-400 font-bold">Feat:</span> {bgData.feat}
+                                        </div>
+                                    )}
+                                </div>
+                                {isSelected && <Check size={20} className="text-amber-500 shrink-0" />}
+                            </button>
+                        );
+                    })}
+                </div>
+             </div>
+        </div>
+    );
+};
+
 interface CharacterCreatorProps {
     onSave: (character: Character) => void;
     onCancel: () => void;
@@ -142,6 +198,15 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
 
         const conMod = mod(finalScores.CON);
         const dexMod = mod(finalScores.DEX);
+        const wisMod = mod(finalScores.WIS);
+
+        // Calculate Initial AC with Unarmored Defense Logic
+        let initialAC = 10 + dexMod;
+        if (charClass === 'Barbarian') {
+            initialAC = 10 + dexMod + conMod;
+        } else if (charClass === 'Monk') {
+            initialAC = 10 + dexMod + wisMod;
+        }
 
         const finalWeapons: Weapon[] = []; // No weapons selected at creation
         const finalEquipment: string[] = [
@@ -169,7 +234,7 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
             maxHp: HIT_DIE[charClass] + conMod,
             currentHp: HIT_DIE[charClass] + conMod,
             tempHp: 0,
-            armorClass: 10 + dexMod,
+            armorClass: initialAC,
             speed: currentSpeciesData.speed || 30,
             initiative: dexMod,
             proficiencyBonus: 2,
@@ -179,7 +244,8 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
             languages,
             backstory,
             features: CLASS_FEATURES[charClass] || [],
-            originFeat: currentBackgroundData.feat
+            originFeat: currentBackgroundData.feat,
+            currentFocusPoints: charClass === 'Monk' ? 1 : undefined
         };
         onSave(newCharacter);
     };
@@ -620,98 +686,6 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
                     onClose={() => setActiveModal(null)}
                 />
             )}
-        </div>
-    );
-};
-
-// --- Subcomponents ---
-
-const SelectionModal: React.FC<{
-    title: string;
-    options: string[];
-    selected: string;
-    onSelect: (val: string) => void;
-    onClose: () => void;
-    detailsMap?: Record<string, DetailData>;
-    backgroundMap?: Record<string, BackgroundData>;
-}> = ({ title, options, selected, onSelect, onClose, detailsMap, backgroundMap }) => {
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-stone-950/80 backdrop-blur-sm" onClick={onClose} />
-            <div className="bg-stone-900 w-full max-w-lg max-h-[85vh] rounded-2xl border border-stone-800 shadow-2xl relative z-10 flex flex-col animate-in zoom-in-95 duration-200">
-                <div className="p-4 border-b border-stone-800 flex justify-between items-center">
-                    <h3 className="text-xl font-serif font-bold text-stone-100">{title}</h3>
-                    <button onClick={onClose} className="p-2 hover:bg-stone-800 rounded-lg text-stone-500 hover:text-white transition-colors">
-                        <X size={20} />
-                    </button>
-                </div>
-                <div className="overflow-y-auto p-4 custom-scrollbar space-y-3">
-                    {options.map(opt => {
-                        const isSelected = selected === opt;
-                        const details = detailsMap ? detailsMap[opt] : null;
-                        const bgDetails = backgroundMap ? backgroundMap[opt] : null;
-                        
-                        return (
-                            <button
-                                key={opt}
-                                onClick={() => onSelect(opt)}
-                                className={`w-full text-left p-4 rounded-xl border transition-all ${isSelected ? 'bg-amber-900/20 border-amber-600 ring-1 ring-amber-600/30' : 'bg-stone-950 border-stone-800 hover:border-stone-600'}`}
-                            >
-                                <div className="flex justify-between items-start mb-2">
-                                    <span className={`font-bold text-lg font-serif ${isSelected ? 'text-amber-500' : 'text-stone-200'}`}>{opt}</span>
-                                    {isSelected && <Check size={20} className="text-amber-500" />}
-                                </div>
-                                
-                                {details && (
-                                    <div className="space-y-3">
-                                        <p className="text-sm text-stone-400 italic leading-relaxed">{details.description}</p>
-                                        
-                                        {/* Size & Speed */}
-                                        {(details.size || details.speed) && (
-                                            <div className="flex gap-3 text-[10px] font-bold uppercase tracking-wider text-stone-500">
-                                                {details.size && <span className="flex items-center gap-1">Size: <span className="text-stone-300">{details.size}</span></span>}
-                                                {details.speed && <span className="flex items-center gap-1">Speed: <span className="text-stone-300">{details.speed}ft</span></span>}
-                                            </div>
-                                        )}
-
-                                        {/* Traits */}
-                                        {details.traits && details.traits.length > 0 && (
-                                            <div className={`mt-2 ${isSelected ? 'space-y-2' : 'flex flex-wrap gap-1'}`}>
-                                                {isSelected ? (
-                                                    // Detailed view for selected item
-                                                    details.traits.map(t => (
-                                                        <div key={t.name} className="bg-stone-900/50 p-2 rounded border border-stone-800">
-                                                            <span className="text-xs font-bold text-amber-500 block">{t.name}</span>
-                                                            <span className="text-xs text-stone-400">{t.description}</span>
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    // Compact badges for unselected
-                                                    details.traits.map(t => (
-                                                        <span key={t.name} className="px-2 py-0.5 rounded bg-stone-900 border border-stone-800 text-[10px] text-stone-400 font-medium">
-                                                            {t.name}
-                                                        </span>
-                                                    ))
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                                
-                                {bgDetails && (
-                                    <div className="mt-1">
-                                        <p className="text-sm text-stone-500 line-clamp-2 mb-2">{bgDetails.description}</p>
-                                        <div className="flex gap-2">
-                                            <span className="text-[10px] bg-stone-900 text-stone-400 px-2 py-1 rounded border border-stone-800 font-bold uppercase">{bgDetails.scores.join('/')}</span>
-                                            <span className="text-[10px] bg-indigo-900/30 text-indigo-300 px-2 py-1 rounded border border-indigo-900/50 font-bold">{bgDetails.feat}</span>
-                                        </div>
-                                    </div>
-                                )}
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
         </div>
     );
 };

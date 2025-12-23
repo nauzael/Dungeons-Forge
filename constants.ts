@@ -1,3 +1,4 @@
+
 import { Ability, Skill, Weapon, MasteryProperty } from './types';
 
 export const SPECIES_LIST = [
@@ -214,6 +215,21 @@ export const CLASS_FEATURES: Record<string, string[]> = {
     'Sorcerer': ['Innate Sorcery', 'Spellcasting'],
     'Warlock': ['Pact Magic', 'Eldritch Invocations', 'Pact Boon'],
     'Wizard': ['Spellcasting', 'Ritual Adept', 'Arcane Recovery']
+};
+
+export const CLASS_PROGRESSION: Record<string, Record<number, string[]>> = {
+    'Fighter': { 2: ['Action Surge', 'Tactical Mind'], 5: ['Extra Attack'], 9: ['Indomitable'] },
+    'Rogue': { 2: ['Cunning Action'], 5: ['Uncanny Dodge'], 7: ['Evasion'] },
+    'Barbarian': { 2: ['Reckless Attack', 'Danger Sense'], 5: ['Extra Attack', 'Fast Movement'] },
+    'Monk': { 2: ['Uncanny Metabolism', 'Deflect Attacks'], 5: ['Extra Attack', 'Stunning Strike'] },
+    'Paladin': { 2: ['Divine Smite', 'Fighting Style'], 5: ['Extra Attack'] },
+    'Ranger': { 2: ['Fighting Style'], 5: ['Extra Attack'] },
+    'Sorcerer': { 2: ['Font of Magic', 'Metamagic'] },
+    'Warlock': { 2: ['Eldritch Invocations'] },
+    'Wizard': { 2: ['Scholar'] },
+    'Druid': { 2: ['Wild Shape', 'Wild Companion'] },
+    'Cleric': { 2: ['Channel Divinity'] },
+    'Bard': { 2: ['Jack of All Trades'] }
 };
 
 export interface Trait {
@@ -482,7 +498,8 @@ export const GENERIC_FEATURES: Record<string, string> = {
   'Sorcerous Restoration': 'You regain Sorcery Points whenever you finish a Short Rest or Long Rest.',
   'Eldritch Invocation': 'In your study of occult lore, you have unearthed Eldritch Invocations, fragments of forbidden knowledge that imbue you with an abiding magical ability.',
   'Arcane Recovery': 'Once per day when you finish a Short Rest, you can choose expended spell slots to recover.',
-  'Tactical Mind': 'You have a mind for tactics on and off the battlefield. When you fail an ability check, you can expend a use of Second Wind to add 1d10 to the roll.'
+  'Tactical Mind': 'You have a mind for tactics on and off the battlefield. When you fail an ability check, you can expend a use of Second Wind to add 1d10 to the roll.',
+  'Ability Score Improvement': 'You can increase one Ability Score by 2, or two Ability Scores by 1. Alternatively, you can take a Feat.'
 };
 
 export interface SubclassData {
@@ -696,6 +713,7 @@ export interface Armor {
 }
 
 export const ARMOR_OPTIONS: Record<string, Armor> = {
+    'Unarmored': { baseAC: 10, type: 'Light', stealthDisadvantage: false, cost: 0 },
     'Padded': { baseAC: 11, type: 'Light', stealthDisadvantage: true, cost: 5 },
     'Leather': { baseAC: 11, type: 'Light', stealthDisadvantage: false, cost: 10 },
     'Studded Leather': { baseAC: 12, type: 'Light', stealthDisadvantage: false, cost: 45 },
@@ -712,6 +730,7 @@ export const ARMOR_OPTIONS: Record<string, Armor> = {
 };
 
 export const ALL_WEAPONS: Record<string, Weapon> = {
+    'Unarmed Strike': { name: 'Unarmed Strike', damage: '1', type: 'Bludgeoning', properties: ['Light'], mastery: '-', equipped: false },
     'Club': { name: 'Club', damage: '1d4', type: 'Bludgeoning', properties: ['Light'], mastery: 'Slow', equipped: false },
     'Dagger': { name: 'Dagger', damage: '1d4', type: 'Piercing', properties: ['Finesse', 'Light', 'Thrown (20/60)'], mastery: 'Nick', equipped: false },
     'Greatclub': { name: 'Greatclub', damage: '1d8', type: 'Bludgeoning', properties: ['Two-Handed'], mastery: 'Push', equipped: false },
@@ -766,16 +785,14 @@ export const getLevelData = (className: string, level: number): LevelData => {
     const isAsi = [4, 8, 12, 16, 19].includes(level);
     const isSubclass = level === 3; // 2024 standardized subclass level
 
-    // Specific features could be mapped here in detail, but for now we rely on the main list or empty array for level ups
-    // that don't have unique named features outside of Subclass/ASI in this simplified data set.
-    // In a real app, this would be a massive map.
-    
-    // We can infer some generic ones.
     const features: string[] = [];
-    if (level === 5) features.push('Extra Attack / Potent Spellcasting');
     
-    // Check subclass features from constants
-    // The main map handles level 3 features.
+    // Check our progression map
+    if (CLASS_PROGRESSION[className] && CLASS_PROGRESSION[className][level]) {
+        features.push(...CLASS_PROGRESSION[className][level]);
+    }
+    
+    if (isAsi) features.push('Ability Score Improvement');
     
     return { features, subclass: isSubclass, asi: isAsi };
 };

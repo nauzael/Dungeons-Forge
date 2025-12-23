@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Character, Ability, Weapon } from '../types';
-import { Shield, Heart, Zap, Scroll, Swords, Backpack, ArrowLeft, BotMessageSquare, Sparkles, BookOpen, X, User, MessageCircle, Plus, Trash2, Settings, AlertCircle, ChevronsUp, Crown, ArrowRight, Check } from 'lucide-react';
+import { Shield, Heart, Zap, Scroll, Swords, Backpack, ArrowLeft, BotMessageSquare, Sparkles, BookOpen, X, User, MessageCircle, Plus, Trash2, Settings, AlertCircle, ChevronsUp, Crown, ArrowRight, Check, Flame, Minus, RefreshCw } from 'lucide-react';
 import { askDndRules } from '../services/geminiService';
 import { MASTERY_DESCRIPTIONS, ALL_WEAPONS, ARMOR_OPTIONS, HIT_DIE, getLevelData, SUBCLASS_OPTIONS, FEAT_OPTIONS, ABILITY_NAMES, GENERIC_FEATURES, SPECIES_DETAILS, CLASS_DETAILS, BACKGROUNDS_DATA } from '../constants';
 
@@ -11,8 +11,8 @@ interface CharacterSheetProps {
     onCharacterUpdate: (char: Character) => void;
 }
 
-type TabType = 'main' | 'combat' | 'inventory' | 'spells';
-const TABS: TabType[] = ['main', 'combat', 'inventory', 'spells'];
+type TabType = 'main' | 'combat' | 'spells' | 'inventory';
+const TABS: TabType[] = ['main', 'combat', 'spells', 'inventory'];
 
 const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCharacterUpdate }) => {
     const [activeTab, setActiveTab] = useState<TabType>('main');
@@ -34,6 +34,7 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
     const [hpIncreaseMode, setHpIncreaseMode] = useState<'fixed' | 'manual'>('fixed');
     const [manualHpInput, setManualHpInput] = useState<number>(0);
     const [selectedSubclass, setSelectedSubclass] = useState<string | null>(null);
+    const [improvementType, setImprovementType] = useState<'asi' | 'feat' | null>(null);
     const [selectedFeat, setSelectedFeat] = useState<string | null>(null);
     const [asiSelection, setAsiSelection] = useState<{ type: '+2' | '+1+1', score1: Ability | '', score2: Ability | '' }>({ type: '+2', score1: '', score2: '' });
 
@@ -63,6 +64,7 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
             setHpIncreaseMode('fixed');
             setManualHpInput(0);
             setSelectedSubclass(null);
+            setImprovementType(null);
             setSelectedFeat(null);
             setAsiSelection({ type: '+2', score1: '', score2: '' });
         }
@@ -120,44 +122,134 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
              if(standardFeat) return standardFeat.description;
         }
 
+        // 7. Deep check for subclass features
+        const mySubclass = getCharacterSubclass(character);
+        if (mySubclass) {
+             const subData = SUBCLASS_OPTIONS[character.class]?.find(s => s.name === mySubclass);
+             if (subData) {
+                 for (const lvl in subData.features) {
+                     const feat = subData.features[lvl].find(f => f.name === featName);
+                     if (feat) return feat.description;
+                 }
+             }
+        }
+
         return null;
     };
 
-    const handleLevelUpConfirm = () => {
-        const hpGain = hpIncreaseMode === 'fixed' ? fixedHpIncrease : manualHpTotal;
+    const calculateAutoAC = (charClass: string, stats: Record<Ability, number>, armorName: string, weapons: Weapon[]) => {
+        const hasShield = weapons.some(w => w.name === 'Shield') || armorName.includes('Shield');
+        let baseArmorName = armorName.replace(' + Shield', '').trim();
         
-        let newFeatures = [...character.features];
-        // Add class features
-        newFeatures = [...newFeatures, ...levelData.features];
-        
-        // Add Subclass if selected
-        if (selectedSubclass) {
-            newFeatures.push(`Subclass: ${selectedSubclass}`);
+        if (!ARMOR_OPTIONS[baseArmorName] && baseArmorName !== 'Unarmored') {
+            baseArmorName = 'Unarmored';
         }
 
-        // Handle ASI
+        const dexMod = getModifier(stats.DEX);
+        const conMod = getModifier(stats.CON);
+        const wisMod = getModifier(stats.WIS);
+        
+        let ac = 10 + dexMod; // Default fallback
+
+        const armorData = ARMOR_OPTIONS[baseArmorName];
+
+        if (baseArmorName === 'Unarmored') {
+            if (charClass === 'Barbarian') {
+                ac = 10 + dexMod + conMod;
+                // Barbarians can use shields with unarmored defense
+                if (hasShield) ac += 2;
+            } else if (charClass === 'Monk') {
+                if (!hasShield) {
+                     ac = 10 + dexMod + wisMod;
+                } else {
+                     ac = 10 + dexMod + 2; // Shield disables Wis bonus
+                }
+            } else {
+                ac = 10 + dexMod;
+                if (hasShield) ac += 2;
+            }
+        } else if (armorData) {
+            let effectiveDex = dexMod;
+            if (armorData.maxDex !== undefined) {
+                effectiveDex = Math.min(dexMod, armorData.maxDex);
+            }
+            ac = armorData.baseAC + effectiveDex;
+            if (hasShield) ac += 2;
+        }
+
+        return ac;
+    };
+
+    const updateFocusPoints = (newValue: number) => {
+        const max = character.level;
+        const clamped = Math.max(0, Math.min(newValue, max));
+        onCharacterUpdate({ ...character, currentFocusPoints: clamped });
+    };
+
+    const getMartialArtsDie = (level: number) => {
+        if (level >= 17) return '1d12';
+        if (level >= 11) return '1d10';
+        if (level >= 5) return '1d8';
+        return '1d6';
+    };
+
+    const handleLevelUpConfirm = () => {
+        // 1. Calculate New Ability Scores
         let newScores = { ...character.abilityScores };
-        if (selectedFeat === 'Ability Score Improvement' && needsAsi) {
-             if (asiSelection.type === '+2' && asiSelection.score1) {
-                 newScores[asiSelection.score1 as Ability] += 2;
-             } else if (asiSelection.type === '+1+1' && asiSelection.score1 && asiSelection.score2) {
-                 newScores[asiSelection.score1 as Ability] += 1;
-                 newScores[asiSelection.score2 as Ability] += 1;
-             }
-        } else if (selectedFeat && needsAsi) {
+        if (needsAsi && improvementType === 'asi') {
+            if (asiSelection.type === '+2' && asiSelection.score1) {
+                newScores[asiSelection.score1 as Ability] += 2;
+            } else if (asiSelection.type === '+1+1' && asiSelection.score1 && asiSelection.score2) {
+                newScores[asiSelection.score1 as Ability] += 1;
+                newScores[asiSelection.score2 as Ability] += 1;
+            }
+        }
+        
+        // 2. Calculate Derived Stats
+        const newConMod = getModifier(newScores.CON);
+        const newDexMod = getModifier(newScores.DEX);
+
+        const finalHpGain = hpIncreaseMode === 'fixed' 
+            ? Math.max(1, (hitDie / 2) + 1 + newConMod)
+            : Math.max(1, manualHpInput + newConMod);
+
+        const newAC = calculateAutoAC(character.class, newScores, equippedArmorName, activeWeapons);
+        
+        // 3. Compile Features
+        let newFeatures = [...character.features];
+        newFeatures = [...newFeatures, ...levelData.features];
+        
+        if (needsAsi && improvementType === 'feat' && selectedFeat) {
             newFeatures.push(`Feat: ${selectedFeat}`);
+        }
+
+        let activeSubclass = getCharacterSubclass(character);
+        if (selectedSubclass) {
+            newFeatures.push(`Subclass: ${selectedSubclass}`);
+            activeSubclass = selectedSubclass;
+        }
+
+        if (activeSubclass) {
+            const subData = SUBCLASS_OPTIONS[character.class]?.find(s => s.name === activeSubclass);
+            if (subData && subData.features[nextLevel]) {
+                const subFeatures = subData.features[nextLevel].map(f => f.name);
+                newFeatures = [...newFeatures, ...subFeatures];
+            }
         }
 
         const updatedChar: Character = {
             ...character,
             level: nextLevel,
-            maxHp: character.maxHp + hpGain,
-            currentHp: character.currentHp + hpGain, // Heal the gained amount
+            maxHp: character.maxHp + finalHpGain,
+            currentHp: character.currentHp + finalHpGain,
             proficiencyBonus: nextPB,
             features: newFeatures,
             abilityScores: newScores,
-            weapons: activeWeapons, // Persist current weapons
-            armorClass: currentAC   // Persist current AC
+            weapons: activeWeapons, 
+            armorClass: newAC,
+            initiative: newDexMod,
+            // Reset focus points to new max on level up if Monk
+            currentFocusPoints: character.class === 'Monk' ? nextLevel : undefined
         };
 
         onCharacterUpdate(updatedChar);
@@ -167,10 +259,13 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
     const handleAddWeapon = (weaponKey: string) => {
         const weaponData = ALL_WEAPONS[weaponKey];
         if (weaponData) {
-            setActiveWeapons(prev => [...prev, { ...weaponData, equipped: true }]);
-            // Auto-apply shield bonus if equipped as weapon
+            const newWeapons = [...activeWeapons, { ...weaponData, equipped: true }];
+            setActiveWeapons(newWeapons);
+            
+            // Recalculate AC if Shield is added
             if (weaponKey === 'Shield') {
-                setCurrentAC(prev => prev + 2);
+                const newAC = calculateAutoAC(character.class, character.abilityScores, equippedArmorName, newWeapons);
+                setCurrentAC(newAC);
             }
             setShowWeaponModal(false);
         }
@@ -178,35 +273,38 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
 
     const handleRemoveWeapon = (index: number) => {
         const weaponToRemove = activeWeapons[index];
-        // Remove shield bonus
+        const newWeapons = activeWeapons.filter((_, i) => i !== index);
+        setActiveWeapons(newWeapons);
+
         if (weaponToRemove && weaponToRemove.name === 'Shield') {
-             setCurrentAC(prev => prev - 2);
+             const newAC = calculateAutoAC(character.class, character.abilityScores, equippedArmorName, newWeapons);
+             setCurrentAC(newAC);
         }
-        setActiveWeapons(prev => prev.filter((_, i) => i !== index));
     };
 
     const handleEquipArmor = (armorKey: string) => {
         const armor = ARMOR_OPTIONS[armorKey];
         if (!armor) return;
 
-        let dexMod = getModifier(character.abilityScores.DEX);
-        if (armor.maxDex !== undefined) {
-            dexMod = Math.min(dexMod, armor.maxDex);
-        }
-        
-        let newAC = 0;
-        let name = armorKey;
-
-        // Simple logic: if shield, add to current. If armor, replace base.
+        // If it's a shield from the armor menu, treat as adding to weapons/shield slot logic
         if (armor.type === 'Shield') {
-            newAC = currentAC + armor.baseAC; 
-            name = `${equippedArmorName} + Shield`;
+            // Check if already has shield
+            if (!activeWeapons.some(w => w.name === 'Shield')) {
+                const shieldWeapon = ALL_WEAPONS['Shield'];
+                if (shieldWeapon) {
+                    const newWeapons = [...activeWeapons, { ...shieldWeapon, equipped: true }];
+                    setActiveWeapons(newWeapons);
+                    const newAC = calculateAutoAC(character.class, character.abilityScores, equippedArmorName, newWeapons);
+                    setCurrentAC(newAC);
+                }
+            }
         } else {
-            newAC = armor.baseAC + dexMod;
+            // It is body armor (or Unarmored)
+            setEquippedArmorName(armorKey);
+            const newAC = calculateAutoAC(character.class, character.abilityScores, armorKey, activeWeapons);
+            setCurrentAC(newAC);
         }
         
-        setEquippedArmorName(name);
-        setCurrentAC(newAC);
         setShowArmorModal(false);
     };
 
@@ -260,10 +358,32 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
     };
 
     // Helper for Weapon Slots
-    const mainHand = activeWeapons[0];
-    const offHand = activeWeapons[1];
+    // We map over weapons to check if they need dynamic stats (e.g. Monk Unarmed)
+    const resolveWeapon = (w: Weapon): Weapon => {
+        if (character.class === 'Monk' && w.name === 'Unarmed Strike') {
+            const die = getMartialArtsDie(character.level);
+            const dexMod = getModifier(character.abilityScores.DEX);
+            const strMod = getModifier(character.abilityScores.STR);
+            const mod = Math.max(dexMod, strMod);
+            const sign = mod >= 0 ? '+' : '';
+            return {
+                ...w,
+                damage: `${die} ${sign} ${mod}`,
+                properties: [...w.properties, 'Martial Arts']
+            };
+        }
+        return w;
+    };
+
+    const mainHand = activeWeapons[0] ? resolveWeapon(activeWeapons[0]) : undefined;
+    const offHand = activeWeapons[1] ? resolveWeapon(activeWeapons[1]) : undefined;
     const isTwoHanded = mainHand?.properties.some(p => p.includes('Two-Handed'));
-    const otherWeapons = activeWeapons.slice(2);
+    const otherWeapons = activeWeapons.slice(2).map(resolveWeapon);
+    
+    // Display name logic for UI
+    const displayArmorName = activeWeapons.some(w => w.name === 'Shield') && !equippedArmorName.includes('Shield') 
+        ? `${equippedArmorName} + Shield` 
+        : equippedArmorName;
 
     return (
         <div 
@@ -368,72 +488,7 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                                 ))}
                             </div>
 
-                            {/* Features */}
-                            <div>
-                                <SectionHeader icon={<Sparkles size={16}/>} title="Features & Traits" />
-                                <div className="space-y-3">
-                                    <div className="flex gap-2 mb-4 overflow-x-auto pb-2 no-scrollbar">
-                                        <Badge>{character.background}</Badge>
-                                        <Badge color="indigo">{character.originFeat}</Badge>
-                                        <Badge color="stone">{character.species}</Badge>
-                                    </div>
-                                    {character.features.map((featName, idx) => {
-                                        const description = getFeatureDescription(featName);
-                                        return (
-                                            <div key={idx} className="bg-stone-900/60 p-4 rounded-xl border border-stone-800/50">
-                                                <div className="flex items-center gap-3 mb-1">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-700 shrink-0"></div>
-                                                    <span className="text-stone-200 font-bold text-sm">{featName}</span>
-                                                </div>
-                                                {description && (
-                                                    <p className="text-stone-500 text-xs leading-relaxed pl-4.5">
-                                                        {description}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* Backstory */}
-                            <div>
-                                <SectionHeader icon={<Scroll size={16}/>} title="Backstory" />
-                                <div className="bg-stone-900/30 p-5 rounded-xl border border-stone-800/50 relative">
-                                    <p className="text-stone-400 text-sm leading-7 font-serif italic">
-                                        "{character.backstory}"
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'combat' && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
-                            
-                            {/* --- ARMOR SECTION --- */}
-                            <SectionHeader icon={<Shield size={16}/>} title="Defense" />
-                            <div className="bg-stone-900 border border-stone-800 rounded-2xl p-4 flex justify-between items-center relative overflow-hidden">
-                                <div>
-                                    <div className="text-stone-400 text-xs font-bold uppercase tracking-wider mb-1">Equipped Armor</div>
-                                    <div className="text-stone-100 font-serif font-bold text-lg">{equippedArmorName}</div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="text-right">
-                                        <div className="text-2xl font-bold text-stone-100">{currentAC}</div>
-                                        <div className="text-[10px] text-stone-500 font-bold uppercase">AC</div>
-                                    </div>
-                                    <button 
-                                        onClick={() => setShowArmorModal(true)}
-                                        className="p-3 bg-stone-950 rounded-xl border border-stone-800 text-stone-400 hover:text-white hover:border-stone-600 transition-all"
-                                    >
-                                        <Settings size={18} />
-                                    </button>
-                                </div>
-                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-stone-700"></div>
-                            </div>
-
-                            {/* --- WEAPON SLOTS --- */}
+                            {/* --- WEAPON SLOTS (Moved UP) --- */}
                             <SectionHeader icon={<Swords size={16}/>} title="Weapons" />
                             
                             {/* Main Hand */}
@@ -514,6 +569,100 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                                 </button>
                             )}
 
+                            {/* --- ARMOR SECTION (Moved DOWN) --- */}
+                            <SectionHeader icon={<Shield size={16}/>} title="Defense" />
+                            <div className="bg-stone-900 border border-stone-800 rounded-2xl p-4 flex justify-between items-center relative overflow-hidden">
+                                <div>
+                                    <div className="text-stone-400 text-xs font-bold uppercase tracking-wider mb-1">Equipped Armor</div>
+                                    <div className="text-stone-100 font-serif font-bold text-lg">{displayArmorName}</div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <div className="text-right">
+                                        <div className="text-2xl font-bold text-stone-100">{currentAC}</div>
+                                        <div className="text-[10px] text-stone-500 font-bold uppercase">AC</div>
+                                    </div>
+                                    <button 
+                                        onClick={() => setShowArmorModal(true)}
+                                        className="p-3 bg-stone-950 rounded-xl border border-stone-800 text-stone-400 hover:text-white hover:border-stone-600 transition-all"
+                                    >
+                                        <Settings size={18} />
+                                    </button>
+                                </div>
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-stone-700"></div>
+                            </div>
+
+                        </div>
+                    )}
+
+                    {activeTab === 'combat' && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
+                            
+                            {/* --- MONK FOCUS POINTS --- */}
+                            {character.class === 'Monk' && (
+                                <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+                                    <SectionHeader icon={<Flame size={16}/>} title="Class Resources" />
+                                    <div className="bg-stone-900 border border-stone-800 rounded-2xl p-4 flex justify-between items-center">
+                                        <div>
+                                            <div className="text-stone-100 font-bold text-lg">Focus Points</div>
+                                            <div className="text-stone-500 text-xs">Monk Level {character.level}</div>
+                                        </div>
+                                        
+                                        <div className="flex items-center gap-3 bg-stone-950 p-1.5 rounded-xl border border-stone-800">
+                                            <button 
+                                                onClick={() => updateFocusPoints((character.currentFocusPoints ?? character.level) - 1)}
+                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-stone-800 text-stone-400 hover:text-white active:scale-95 transition-all"
+                                            >
+                                                <Minus size={16} />
+                                            </button>
+                                            <div className="w-12 text-center">
+                                                <span className="text-xl font-bold text-amber-500">{character.currentFocusPoints ?? character.level}</span>
+                                                <span className="text-xs text-stone-600 font-bold"> / {character.level}</span>
+                                            </div>
+                                            <button 
+                                                onClick={() => updateFocusPoints((character.currentFocusPoints ?? character.level) + 1)}
+                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-stone-800 text-stone-400 hover:text-white active:scale-95 transition-all"
+                                            >
+                                                <Plus size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <button 
+                                        onClick={() => updateFocusPoints(character.level)}
+                                        className="w-full mt-2 py-2 flex items-center justify-center gap-2 text-xs font-bold text-stone-500 hover:text-amber-500 transition-colors"
+                                    >
+                                        <RefreshCw size={12}/> Reset on Short/Long Rest
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Features (Moved from Hero) */}
+                            <div>
+                                <SectionHeader icon={<Sparkles size={16}/>} title="Features & Traits" />
+                                <div className="space-y-3">
+                                    <div className="flex gap-2 mb-4 overflow-x-auto pb-2 no-scrollbar">
+                                        <Badge>{character.background}</Badge>
+                                        <Badge color="indigo">{character.originFeat}</Badge>
+                                        <Badge color="stone">{character.species}</Badge>
+                                    </div>
+                                    {character.features.map((featName, idx) => {
+                                        const description = getFeatureDescription(featName);
+                                        return (
+                                            <div key={idx} className="bg-stone-900/60 p-4 rounded-xl border border-stone-800/50">
+                                                <div className="flex items-center gap-3 mb-1">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-700 shrink-0"></div>
+                                                    <span className="text-stone-200 font-bold text-sm">{featName}</span>
+                                                </div>
+                                                {description && (
+                                                    <p className="text-stone-500 text-xs leading-relaxed pl-4.5">
+                                                        {description}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
                         </div>
                     )}
 
@@ -531,6 +680,16 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                             <button className="w-full py-4 border border-dashed border-stone-700 text-stone-500 rounded-xl hover:bg-stone-900/50 transition-colors text-sm font-medium">
                                 + Add Item
                             </button>
+
+                            {/* Backstory moved here */}
+                            <div className="mt-8 pt-6 border-t border-stone-800">
+                                <SectionHeader icon={<Scroll size={16}/>} title="Backstory" />
+                                <div className="bg-stone-900/30 p-5 rounded-xl border border-stone-800/50 relative">
+                                    <p className="text-stone-400 text-sm leading-7 font-serif italic">
+                                        "{character.backstory}"
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     )}
 
@@ -561,17 +720,18 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                         icon={<Swords size={24}/>} 
                         label="Combat" 
                     />
-                    <NavButton 
-                        active={activeTab === 'inventory'} 
-                        onClick={() => setActiveTab('inventory')} 
-                        icon={<Backpack size={24}/>} 
-                        label="Items" 
-                    />
+                    {/* Swapped Spells and Items */}
                     <NavButton 
                         active={activeTab === 'spells'} 
                         onClick={() => setActiveTab('spells')} 
                         icon={<BookOpen size={24}/>} 
                         label="Spells" 
+                    />
+                    <NavButton 
+                        active={activeTab === 'inventory'} 
+                        onClick={() => setActiveTab('inventory')} 
+                        icon={<Backpack size={24}/>} 
+                        label="Items" 
                     />
                 </nav>
             </div>
@@ -699,6 +859,9 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                                                     }
                                                 }
 
+                                                // Explicitly handle Generic Features in Step 2 preview
+                                                const desc = getFeatureDescription(feat);
+
                                                 return (
                                                 <div key={i} className="bg-stone-950/50 p-4 rounded-xl border border-stone-800 flex gap-3">
                                                     <div className="p-2 bg-amber-500/10 rounded-lg text-amber-600 h-fit">
@@ -706,7 +869,8 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                                                     </div>
                                                     <div>
                                                         <div className="font-bold text-stone-200">{feat}</div>
-                                                        <div className="text-xs text-stone-500 mt-1">Class Feature (Level {nextLevel})</div>
+                                                        <div className="text-xs text-stone-500 mt-1 mb-1">Class Feature (Level {nextLevel})</div>
+                                                        {desc && <div className="text-sm text-stone-400 leading-relaxed">{desc}</div>}
                                                     </div>
                                                 </div>
                                             )})}
@@ -763,51 +927,47 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                                         </div>
                                     )}
 
-                                    {/* ASI / FEAT SELECTION */}
+                                    {/* ASI / FEAT SELECTION - REDESIGNED */}
                                     {needsAsi && (
                                         <div className="space-y-4">
-                                            <label className="text-stone-400 text-xs font-bold uppercase tracking-wider block">Improvement Type</label>
-                                            <select 
-                                                className="w-full bg-stone-950 border border-stone-800 rounded-xl p-3 text-stone-200 mb-2 focus:ring-1 focus:ring-amber-600 outline-none"
-                                                onChange={(e) => setSelectedFeat(e.target.value)}
-                                                value={selectedFeat || ''}
-                                            >
-                                                <option value="" disabled>Select an option...</option>
-                                                {FEAT_OPTIONS.map(f => (
-                                                    <option key={f.name} value={f.name}>{f.name}</option>
-                                                ))}
-                                            </select>
+                                            <label className="text-stone-400 text-xs font-bold uppercase tracking-wider block">Ability Score Improvement</label>
+                                            
+                                            {/* Top Level Toggle */}
+                                            <div className="flex gap-2 mb-4">
+                                                <button
+                                                    onClick={() => { setImprovementType('asi'); setSelectedFeat(null); }}
+                                                    className={`flex-1 p-3 rounded-xl border font-bold text-sm transition-all ${improvementType === 'asi' ? 'bg-amber-900/40 border-amber-600 text-amber-500' : 'bg-stone-950 border-stone-800 text-stone-400 hover:border-stone-600'}`}
+                                                >
+                                                    Boost Ability Scores
+                                                </button>
+                                                <button
+                                                    onClick={() => { setImprovementType('feat'); setSelectedFeat(null); }}
+                                                    className={`flex-1 p-3 rounded-xl border font-bold text-sm transition-all ${improvementType === 'feat' ? 'bg-indigo-900/40 border-indigo-500 text-indigo-400' : 'bg-stone-950 border-stone-800 text-stone-400 hover:border-stone-600'}`}
+                                                >
+                                                    Choose a Feat
+                                                </button>
+                                            </div>
 
-                                            {/* Feat Details Preview */}
-                                            {selectedFeat && selectedFeat !== 'Ability Score Improvement' && (
-                                                 <div className="bg-stone-950/50 p-4 rounded-xl border border-stone-800">
-                                                     <div className="font-bold text-stone-300 text-sm mb-1">{selectedFeat}</div>
-                                                     <div className="text-xs text-stone-500 leading-relaxed">
-                                                        {FEAT_OPTIONS.find(f => f.name === selectedFeat)?.description}
-                                                     </div>
-                                                 </div>
-                                            )}
-
-                                            {/* Logic for manual ASI inputs */}
-                                            {selectedFeat === 'Ability Score Improvement' && (
-                                                <div className="bg-stone-950/50 p-4 rounded-xl border border-stone-800 space-y-3">
+                                            {/* OPTION A: Manual ASI */}
+                                            {improvementType === 'asi' && (
+                                                <div className="bg-stone-950/50 p-4 rounded-xl border border-stone-800 space-y-4 animate-in fade-in slide-in-from-top-2">
                                                     <div className="flex gap-2 text-xs font-bold text-stone-400 mb-2">
                                                         <button 
                                                             onClick={() => setAsiSelection(p => ({ ...p, type: '+2' }))}
-                                                            className={`flex-1 py-1.5 rounded border ${asiSelection.type === '+2' ? 'bg-amber-900/30 border-amber-600 text-amber-500' : 'border-stone-700'}`}
+                                                            className={`flex-1 py-2 rounded-lg border transition-all ${asiSelection.type === '+2' ? 'bg-amber-600 text-white border-amber-500' : 'bg-stone-900 border-stone-700 hover:bg-stone-800'}`}
                                                         >
-                                                            +2 to One
+                                                            +2 to One Stat
                                                         </button>
                                                         <button 
                                                             onClick={() => setAsiSelection(p => ({ ...p, type: '+1+1' }))}
-                                                            className={`flex-1 py-1.5 rounded border ${asiSelection.type === '+1+1' ? 'bg-amber-900/30 border-amber-600 text-amber-500' : 'border-stone-700'}`}
+                                                            className={`flex-1 py-2 rounded-lg border transition-all ${asiSelection.type === '+1+1' ? 'bg-amber-600 text-white border-amber-500' : 'bg-stone-900 border-stone-700 hover:bg-stone-800'}`}
                                                         >
-                                                            +1 to Two
+                                                            +1 to Two Stats
                                                         </button>
                                                     </div>
 
                                                     <select 
-                                                        className="w-full bg-stone-900 border border-stone-700 rounded-lg p-2 text-sm text-stone-300 outline-none"
+                                                        className="w-full bg-stone-900 border border-stone-700 rounded-lg p-3 text-sm text-stone-200 outline-none focus:border-amber-600"
                                                         value={asiSelection.score1}
                                                         onChange={(e) => setAsiSelection(p => ({...p, score1: e.target.value as Ability}))}
                                                     >
@@ -817,13 +977,38 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
 
                                                     {asiSelection.type === '+1+1' && (
                                                         <select 
-                                                            className="w-full bg-stone-900 border border-stone-700 rounded-lg p-2 text-sm text-stone-300 outline-none"
+                                                            className="w-full bg-stone-900 border border-stone-700 rounded-lg p-3 text-sm text-stone-200 outline-none focus:border-amber-600"
                                                             value={asiSelection.score2}
                                                             onChange={(e) => setAsiSelection(p => ({...p, score2: e.target.value as Ability}))}
                                                         >
-                                                            <option value="">Select Ability...</option>
+                                                            <option value="">Select Second Ability...</option>
                                                             {Object.keys(ABILITY_NAMES).map(k => <option key={k} value={k}>{k} ({character.abilityScores[k as Ability]})</option>)}
                                                         </select>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* OPTION B: Feat Selection */}
+                                            {improvementType === 'feat' && (
+                                                <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                                                    <select 
+                                                        className="w-full bg-stone-950 border border-stone-800 rounded-xl p-3 text-stone-200 mb-2 focus:ring-1 focus:ring-indigo-500 outline-none"
+                                                        onChange={(e) => setSelectedFeat(e.target.value)}
+                                                        value={selectedFeat || ''}
+                                                    >
+                                                        <option value="" disabled>Select a feat...</option>
+                                                        {FEAT_OPTIONS.filter(f => f.name !== 'Ability Score Improvement').map(f => (
+                                                            <option key={f.name} value={f.name}>{f.name}</option>
+                                                        ))}
+                                                    </select>
+
+                                                    {selectedFeat && (
+                                                         <div className="bg-indigo-950/20 p-4 rounded-xl border border-indigo-900/50">
+                                                             <div className="font-bold text-indigo-300 text-sm mb-1">{selectedFeat}</div>
+                                                             <div className="text-xs text-stone-400 leading-relaxed">
+                                                                {FEAT_OPTIONS.find(f => f.name === selectedFeat)?.description}
+                                                             </div>
+                                                         </div>
                                                     )}
                                                 </div>
                                             )}
@@ -848,7 +1033,9 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-stone-500">HP Gained</span>
-                                            <span className="text-stone-200 font-bold">+{hpIncreaseMode === 'fixed' ? fixedHpIncrease : manualHpTotal}</span>
+                                            <span className="text-stone-200 font-bold">+{hpIncreaseMode === 'fixed' 
+                                                ? Math.max(1, (hitDie / 2) + 1 + (asiSelection.type === '+2' && asiSelection.score1 === 'CON' ? getModifier(character.abilityScores.CON + 2) : getModifier(character.abilityScores.CON))) 
+                                                : manualHpTotal}</span>
                                         </div>
                                         {selectedSubclass && (
                                             <div className="flex justify-between">
@@ -856,10 +1043,21 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                                                 <span className="text-amber-500 font-bold">{selectedSubclass}</span>
                                             </div>
                                         )}
-                                        {selectedFeat && (
+                                        
+                                        {/* Confirmation Details for ASI/Feat */}
+                                        {improvementType === 'feat' && selectedFeat && (
                                             <div className="flex justify-between">
-                                                <span className="text-stone-500">Feat/ASI</span>
+                                                <span className="text-stone-500">Feat Gained</span>
                                                 <span className="text-indigo-400 font-bold">{selectedFeat}</span>
+                                            </div>
+                                        )}
+                                        {improvementType === 'asi' && (
+                                            <div className="flex justify-between">
+                                                <span className="text-stone-500">Stats Gained</span>
+                                                <span className="text-amber-500 font-bold">
+                                                    {asiSelection.type === '+2' && asiSelection.score1 ? `+2 ${asiSelection.score1}` : ''}
+                                                    {asiSelection.type === '+1+1' && asiSelection.score1 && asiSelection.score2 ? `+1 ${asiSelection.score1}, +1 ${asiSelection.score2}` : ''}
+                                                </span>
                                             </div>
                                         )}
                                     </div>
@@ -889,9 +1087,10 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                                     }}
                                     disabled={
                                         (levelUpStep === 3 && needsSubclass && !selectedSubclass) ||
-                                        (levelUpStep === 3 && needsAsi && !selectedFeat) ||
-                                        (levelUpStep === 3 && needsAsi && selectedFeat === 'Ability Score Improvement' && asiSelection.type === '+2' && !asiSelection.score1) ||
-                                        (levelUpStep === 3 && needsAsi && selectedFeat === 'Ability Score Improvement' && asiSelection.type === '+1+1' && (!asiSelection.score1 || !asiSelection.score2))
+                                        (levelUpStep === 3 && needsAsi && !improvementType) ||
+                                        (levelUpStep === 3 && needsAsi && improvementType === 'feat' && !selectedFeat) ||
+                                        (levelUpStep === 3 && needsAsi && improvementType === 'asi' && asiSelection.type === '+2' && !asiSelection.score1) ||
+                                        (levelUpStep === 3 && needsAsi && improvementType === 'asi' && asiSelection.type === '+1+1' && (!asiSelection.score1 || !asiSelection.score2))
                                     }
                                     className="flex-1 py-3 bg-stone-100 hover:bg-white text-stone-950 font-bold rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
@@ -1141,14 +1340,23 @@ const Badge: React.FC<{ children: React.ReactNode; color?: 'stone' | 'indigo' }>
 };
 
 const NavButton: React.FC<{ active: boolean; onClick: () => void; icon: React.ReactNode; label: string }> = ({ active, onClick, icon, label }) => (
-    <button 
+    <button
         onClick={onClick}
-        className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-2xl transition-all w-20 group relative`}
+        className={`relative flex flex-col items-center justify-center w-20 h-16 transition-all duration-300 ${active ? '-translate-y-1' : ''}`}
     >
-        <div className={`transition-all duration-300 p-1.5 rounded-xl ${active ? 'text-amber-500 -translate-y-2 bg-stone-900 border border-stone-800 shadow-lg' : 'text-stone-500 group-hover:text-stone-300'}`}>
+        {/* Icon Container */}
+        <div className={`p-2 rounded-2xl transition-all duration-500 ease-out ${
+            active
+                ? 'bg-gradient-to-br from-amber-900/80 to-stone-900 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)] border border-amber-500/30 translate-y-0'
+                : 'text-stone-500 translate-y-2'
+        }`}>
             {icon}
         </div>
-        <span className={`text-[10px] font-bold tracking-wide transition-all duration-300 ${active ? 'text-amber-500 -translate-y-1 opacity-100' : 'text-stone-600 opacity-0 h-0 overflow-hidden'}`}>
+
+        {/* Label */}
+        <span className={`absolute -bottom-1 text-[9px] font-bold tracking-widest uppercase transition-all duration-300 ${
+            active ? 'opacity-100 translate-y-0 text-amber-500' : 'opacity-0 translate-y-2'
+        }`}>
             {label}
         </span>
     </button>
