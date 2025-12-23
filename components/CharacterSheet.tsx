@@ -1,8 +1,9 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Character, Ability, Weapon } from '../types';
-import { Shield, Heart, Zap, Scroll, Swords, Backpack, ArrowLeft, BotMessageSquare, Sparkles, BookOpen, X, User, MessageCircle, Plus, Trash2, Settings, AlertCircle, ChevronsUp, Crown, ArrowRight, Check, Flame, Minus, RefreshCw, Dna, Star } from 'lucide-react';
+import { Character, Ability, Weapon, Skill } from '../types';
+import { Shield, Heart, Zap, Scroll, Swords, Backpack, ArrowLeft, BotMessageSquare, Sparkles, BookOpen, X, User, MessageCircle, Plus, Trash2, Settings, AlertCircle, ChevronsUp, Crown, ArrowRight, Check, Flame, Minus, RefreshCw, Dna, Star, GraduationCap, Skull } from 'lucide-react';
 import { askDndRules } from '../services/geminiService';
-import { MASTERY_DESCRIPTIONS, ALL_WEAPONS, ARMOR_OPTIONS, HIT_DIE, getLevelData, SUBCLASS_OPTIONS, FEAT_OPTIONS, ABILITY_NAMES, GENERIC_FEATURES, SPECIES_DETAILS, CLASS_DETAILS, BACKGROUNDS_DATA } from '../constants';
+import { MASTERY_DESCRIPTIONS, ALL_WEAPONS, ARMOR_OPTIONS, HIT_DIE, getLevelData, SUBCLASS_OPTIONS, FEAT_OPTIONS, ABILITY_NAMES, GENERIC_FEATURES, SPECIES_DETAILS, CLASS_DETAILS, BACKGROUNDS_DATA, SKILL_LIST, SKILL_ABILITY_MAP, CLASS_SAVING_THROWS } from '../constants';
 
 interface CharacterSheetProps {
     character: Character;
@@ -33,6 +34,8 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
     const [showWeaponModal, setShowWeaponModal] = useState(false);
     const [showArmorModal, setShowArmorModal] = useState(false);
     const [showLevelUpModal, setShowLevelUpModal] = useState(false);
+    const [showHpModal, setShowHpModal] = useState(false);
+    const [hpInput, setHpInput] = useState<string>('');
     const [searchTerm, setSearchTerm] = useState('');
 
     // Level Up State (Wizard)
@@ -49,6 +52,7 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
     const [aiResponse, setAiResponse] = useState<string | null>(null);
     const [isAskingAi, setIsAskingAi] = useState(false);
     const aiInputRef = useRef<HTMLInputElement>(null);
+    const hpInputRef = useRef<HTMLInputElement>(null);
 
     // Swipe state
     const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -62,6 +66,13 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
         setActiveWeapons(character.weapons || []);
         setCurrentAC(character.armorClass);
     }, [character]);
+
+    // Focus HP input when modal opens
+    useEffect(() => {
+        if (showHpModal && hpInputRef.current) {
+            setTimeout(() => hpInputRef.current?.focus(), 100);
+        }
+    }, [showHpModal]);
 
     // Reset Level Up wizard on close
     useEffect(() => {
@@ -117,7 +128,6 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
     };
 
     // --- FEATURE RESOLUTION LOGIC ---
-    // This organizes features into groups and finds their descriptions
     const groupedFeatures = useMemo(() => {
         const groups: Record<string, FeatureItem[]> = {
             'Class': [],
@@ -222,9 +232,8 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
             }
         });
 
-        // 2. Add implied Species Traits if not in list (Legacy support or fresh char)
+        // 2. Add implied Species Traits if not in list
         currentSpeciesTraits.forEach(trait => {
-            // Avoid duplicates
             if (!groups['Species'].some(i => i.name === trait.name)) {
                 groups['Species'].push({ name: trait.name, description: trait.description, source: 'Species' });
             }
@@ -291,6 +300,22 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
         const max = character.level;
         const clamped = Math.max(0, Math.min(newValue, max));
         onCharacterUpdate({ ...character, currentFocusPoints: clamped });
+    };
+
+    const handleHpChange = (type: 'heal' | 'damage') => {
+        const amount = parseInt(hpInput);
+        if (isNaN(amount) || amount <= 0) return;
+
+        let newHp = character.currentHp;
+        if (type === 'heal') {
+            newHp = Math.min(character.maxHp, newHp + amount);
+        } else {
+            newHp = Math.max(0, newHp - amount);
+        }
+
+        onCharacterUpdate({ ...character, currentHp: newHp });
+        setHpInput('');
+        setShowHpModal(false);
     };
 
     const getMartialArtsDie = (level: number) => {
@@ -565,7 +590,13 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                     <div className="flex justify-between items-center bg-stone-900/50 p-4 rounded-2xl border border-stone-800 shadow-lg">
                         <VitalStat label="AC" value={currentAC} icon={<Shield size={16} className="text-stone-500"/>} />
                         <div className="w-px h-8 bg-stone-800"></div>
-                        <VitalStat label="HP" value={character.currentHp} icon={<Heart size={16} className="text-red-600"/>} />
+                        <VitalStat 
+                            label="HP" 
+                            value={character.currentHp} 
+                            icon={<Heart size={16} className="text-red-600"/>} 
+                            onClick={() => setShowHpModal(true)}
+                            className="cursor-pointer hover:bg-stone-800/50 rounded-lg -m-1 p-1 transition-colors"
+                        />
                         <div className="w-px h-8 bg-stone-800"></div>
                         <VitalStat label="INIT" value={formatMod(character.initiative)} icon={<Zap size={16} className="text-amber-600"/>} />
                         <div className="w-px h-8 bg-stone-800"></div>
@@ -579,25 +610,6 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                     {activeTab === 'main' && (
                         <div key="main" className={`space-y-8 ${animationClass}`}>
                             
-                            {/* Level Up Banner */}
-                            <button 
-                                onClick={() => setShowLevelUpModal(true)}
-                                className="w-full bg-gradient-to-r from-amber-900/40 to-stone-900 border border-amber-900/50 p-3 rounded-xl flex items-center justify-between group hover:border-amber-500/50 transition-all"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-amber-500/10 rounded-lg text-amber-500">
-                                        <ChevronsUp size={20} />
-                                    </div>
-                                    <div className="text-left">
-                                        <div className="text-sm font-bold text-stone-200">Level Up Available</div>
-                                        <div className="text-xs text-stone-500">Advance to Level {nextLevel}</div>
-                                    </div>
-                                </div>
-                                <div className="text-xs font-bold text-amber-500 uppercase tracking-wider group-hover:translate-x-1 transition-transform">
-                                    Begin
-                                </div>
-                            </button>
-
                             {/* Ability Scores */}
                             <div className="grid grid-cols-3 gap-3">
                                 {(Object.keys(character.abilityScores) as Ability[]).map(ability => {
@@ -615,6 +627,45 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                                         </div>
                                     );
                                 })}
+                            </div>
+
+                            {/* --- SAVING THROWS & SKILLS --- */}
+                            <div>
+                                <SectionHeader icon={<Shield size={16}/>} title="Saving Throws" />
+                                <div className="grid grid-cols-3 gap-2 mb-6">
+                                    {(Object.keys(character.abilityScores) as Ability[]).map(ability => {
+                                        const mod = getModifier(character.abilityScores[ability]);
+                                        const isProficient = CLASS_SAVING_THROWS[character.class]?.includes(ability);
+                                        const saveValue = mod + (isProficient ? character.proficiencyBonus : 0);
+                                        
+                                        return (
+                                            <div key={ability} className={`flex flex-col items-center p-2 rounded-xl border ${isProficient ? 'bg-amber-950/20 border-amber-800/50' : 'bg-stone-950 border-stone-800'}`}>
+                                                <span className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${isProficient ? 'text-amber-500' : 'text-stone-500'}`}>{ability}</span>
+                                                <span className={`text-lg font-bold ${isProficient ? 'text-stone-200' : 'text-stone-400'}`}>{formatMod(saveValue)}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <SectionHeader icon={<GraduationCap size={16}/>} title="Skills" />
+                                <div className="bg-stone-900 border border-stone-800 rounded-2xl p-4 grid grid-cols-2 gap-x-4 gap-y-2">
+                                    {SKILL_LIST.map(skill => {
+                                        const ability = SKILL_ABILITY_MAP[skill];
+                                        const mod = getModifier(character.abilityScores[ability]);
+                                        const isProficient = character.skills.includes(skill);
+                                        const total = mod + (isProficient ? character.proficiencyBonus : 0);
+
+                                        return (
+                                            <div key={skill} className="flex justify-between items-center text-sm py-1 border-b border-stone-800/50 last:border-0">
+                                                <div className="flex items-center gap-2 overflow-hidden">
+                                                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isProficient ? 'bg-amber-500' : 'bg-stone-700'}`}></div>
+                                                    <span className={`truncate ${isProficient ? 'text-stone-200 font-bold' : 'text-stone-500'}`}>{skill}</span>
+                                                </div>
+                                                <span className={`font-mono text-xs ${isProficient ? 'text-amber-500 font-bold' : 'text-stone-600'}`}>{formatMod(total)}</span>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
                             </div>
 
                             {/* Info Badges */}
@@ -732,6 +783,25 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-stone-700"></div>
                             </div>
 
+                            {/* Level Up Banner - MOVED HERE */}
+                            <button 
+                                onClick={() => setShowLevelUpModal(true)}
+                                className="w-full bg-gradient-to-r from-amber-900/40 to-stone-900 border border-amber-900/50 p-4 rounded-xl flex items-center justify-between group hover:border-amber-500/50 transition-all shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-3 bg-amber-500/10 rounded-xl text-amber-500">
+                                        <ChevronsUp size={24} />
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="text-base font-bold text-stone-200">Level Up Available</div>
+                                        <div className="text-sm text-stone-500">Advance to Level {nextLevel}</div>
+                                    </div>
+                                </div>
+                                <div className="text-xs font-bold text-amber-500 uppercase tracking-wider group-hover:translate-x-1 transition-transform">
+                                    Begin
+                                </div>
+                            </button>
+
                         </div>
                     )}
 
@@ -834,6 +904,95 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                     )}
                 </div>
             </div>
+
+            {/* --- FOOTER NAVIGATION (Fixed) --- */}
+            <div className="fixed bottom-0 w-full bg-stone-950/95 backdrop-blur-md border-t border-stone-800 pb-safe z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+                <nav className="flex justify-around items-center h-[60px] w-full max-w-lg mx-auto px-2">
+                    <NavButton 
+                        active={activeTab === 'main'} 
+                        onClick={() => handleTabChange('main')} 
+                        icon={<User size={22}/>} 
+                        label="Hero" 
+                    />
+                    <NavButton 
+                        active={activeTab === 'combat'} 
+                        onClick={() => handleTabChange('combat')} 
+                        icon={<Swords size={22}/>} 
+                        label="Combat" 
+                    />
+                    <NavButton 
+                        active={activeTab === 'spells'} 
+                        onClick={() => handleTabChange('spells')} 
+                        icon={<BookOpen size={22}/>} 
+                        label="Spells" 
+                    />
+                    <NavButton 
+                        active={activeTab === 'inventory'} 
+                        onClick={() => handleTabChange('inventory')} 
+                        icon={<Backpack size={22}/>} 
+                        label="Items" 
+                    />
+                </nav>
+            </div>
+
+            {/* --- HP MANAGEMENT MODAL --- */}
+            {showHpModal && (
+                <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4">
+                    <div className="absolute inset-0 bg-stone-950/90 backdrop-blur-md" onClick={() => setShowHpModal(false)} />
+                    <div className="bg-stone-900 w-full max-w-sm rounded-t-3xl sm:rounded-2xl border border-stone-800 relative z-10 flex flex-col shadow-2xl animate-in slide-in-from-bottom-10 p-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="font-bold text-stone-100 text-xl font-serif">Manage Health</h3>
+                            <button onClick={() => setShowHpModal(false)} className="p-2 hover:bg-stone-800 rounded-full text-stone-500"><X size={24}/></button>
+                        </div>
+
+                        {/* Health Bar */}
+                        <div className="mb-6">
+                            <div className="flex justify-between text-sm mb-2 font-bold">
+                                <span className="text-stone-400">Current HP</span>
+                                <span className="text-stone-200">{character.currentHp} <span className="text-stone-600">/</span> {character.maxHp}</span>
+                            </div>
+                            <div className="h-4 bg-stone-800 rounded-full overflow-hidden border border-stone-700">
+                                <div 
+                                    className="h-full bg-gradient-to-r from-red-600 to-red-500 transition-all duration-500 ease-out"
+                                    style={{ width: `${Math.min(100, (character.currentHp / character.maxHp) * 100)}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Input */}
+                        <div className="relative mb-6">
+                            <input 
+                                ref={hpInputRef}
+                                type="number" 
+                                pattern="[0-9]*"
+                                className="w-full bg-stone-950 border border-stone-800 rounded-2xl py-6 text-center text-4xl font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-600 placeholder-stone-700"
+                                placeholder="0"
+                                value={hpInput}
+                                onChange={(e) => setHpInput(e.target.value)}
+                            />
+                            <div className="absolute inset-x-0 bottom-2 text-center text-[10px] text-stone-600 font-bold uppercase tracking-widest pointer-events-none">Amount</div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => handleHpChange('damage')}
+                                className="flex-1 bg-red-950/40 hover:bg-red-900/50 border border-red-900/50 text-red-500 py-4 rounded-xl font-bold flex flex-col items-center gap-1 transition-all active:scale-95"
+                            >
+                                <Skull size={24} />
+                                <span>Damage</span>
+                            </button>
+                            <button 
+                                onClick={() => handleHpChange('heal')}
+                                className="flex-1 bg-green-950/40 hover:bg-green-900/50 border border-green-900/50 text-green-500 py-4 rounded-xl font-bold flex flex-col items-center gap-1 transition-all active:scale-95"
+                            >
+                                <Heart size={24} />
+                                <span>Heal</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* --- LEVEL UP MODAL (WIZARD STYLE) --- */}
             {showLevelUpModal && (
@@ -1409,8 +1568,8 @@ const WeaponCard: React.FC<{ weapon: Weapon, onRemove: () => void }> = ({ weapon
     </div>
 );
 
-const VitalStat: React.FC<{ label: string; value: string | number; icon: React.ReactNode }> = ({ label, value, icon }) => (
-    <div className="flex flex-col items-center gap-1 w-14">
+const VitalStat: React.FC<{ label: string; value: string | number; icon: React.ReactNode; onClick?: () => void; className?: string }> = ({ label, value, icon, onClick, className }) => (
+    <div onClick={onClick} className={`flex flex-col items-center gap-1 w-14 ${className || ''}`}>
         <span className="text-[10px] text-stone-500 font-bold tracking-widest">{label}</span>
         <div className="flex items-center gap-1.5">
             {icon}

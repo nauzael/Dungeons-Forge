@@ -32,6 +32,30 @@ export const ABILITY_NAMES: Record<Ability, string> = {
   INT: 'Intelligence', WIS: 'Wisdom', CHA: 'Charisma'
 };
 
+export const SKILL_ABILITY_MAP: Record<Skill, Ability> = {
+  'Acrobatics': 'DEX', 'Animal Handling': 'WIS', 'Arcana': 'INT', 
+  'Athletics': 'STR', 'Deception': 'CHA', 'History': 'INT', 
+  'Insight': 'WIS', 'Intimidation': 'CHA', 'Investigation': 'INT', 
+  'Medicine': 'WIS', 'Nature': 'INT', 'Perception': 'WIS', 
+  'Performance': 'CHA', 'Persuasion': 'CHA', 'Religion': 'INT', 
+  'Sleight of Hand': 'DEX', 'Stealth': 'DEX', 'Survival': 'WIS'
+};
+
+export const CLASS_SAVING_THROWS: Record<string, Ability[]> = {
+  'Barbarian': ['STR', 'CON'],
+  'Bard': ['DEX', 'CHA'],
+  'Cleric': ['WIS', 'CHA'],
+  'Druid': ['INT', 'WIS'],
+  'Fighter': ['STR', 'CON'],
+  'Monk': ['STR', 'DEX'],
+  'Paladin': ['WIS', 'CHA'],
+  'Ranger': ['STR', 'DEX'],
+  'Rogue': ['DEX', 'INT'],
+  'Sorcerer': ['CON', 'CHA'],
+  'Warlock': ['WIS', 'CHA'],
+  'Wizard': ['INT', 'WIS']
+};
+
 export const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
 
 export const HIT_DIE: Record<string, number> = {
