@@ -1,4 +1,5 @@
 
+
 export type Ability = 'STR' | 'DEX' | 'CON' | 'INT' | 'WIS' | 'CHA';
 
 export interface AbilityScores {
@@ -27,6 +28,17 @@ export interface Weapon {
   properties: WeaponProperty[];
   mastery: MasteryProperty;
   equipped: boolean;
+}
+
+export interface SpellDetail {
+    name: string;
+    level: number;
+    school: string;
+    castingTime: string;
+    range: string;
+    components: string;
+    duration: string;
+    description: string;
 }
 
 export interface Character {
