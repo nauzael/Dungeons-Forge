@@ -1,7 +1,6 @@
-
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Character, Ability, Weapon } from '../types';
-import { Shield, Heart, Zap, Scroll, Swords, Backpack, ArrowLeft, BotMessageSquare, Sparkles, BookOpen, X, User, MessageCircle, Plus, Trash2, Settings, AlertCircle, ChevronsUp, Crown, ArrowRight, Check, Flame, Minus, RefreshCw } from 'lucide-react';
+import { Shield, Heart, Zap, Scroll, Swords, Backpack, ArrowLeft, BotMessageSquare, Sparkles, BookOpen, X, User, MessageCircle, Plus, Trash2, Settings, AlertCircle, ChevronsUp, Crown, ArrowRight, Check, Flame, Minus, RefreshCw, Dna, Star } from 'lucide-react';
 import { askDndRules } from '../services/geminiService';
 import { MASTERY_DESCRIPTIONS, ALL_WEAPONS, ARMOR_OPTIONS, HIT_DIE, getLevelData, SUBCLASS_OPTIONS, FEAT_OPTIONS, ABILITY_NAMES, GENERIC_FEATURES, SPECIES_DETAILS, CLASS_DETAILS, BACKGROUNDS_DATA } from '../constants';
 
@@ -13,6 +12,12 @@ interface CharacterSheetProps {
 
 type TabType = 'main' | 'combat' | 'spells' | 'inventory';
 const TABS: TabType[] = ['main', 'combat', 'spells', 'inventory'];
+
+interface FeatureItem {
+    name: string;
+    description: string;
+    source: 'Class' | 'Species' | 'Background' | 'Feat' | 'General';
+}
 
 const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCharacterUpdate }) => {
     const [activeTab, setActiveTab] = useState<TabType>('main');
@@ -89,54 +94,155 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
         return entry ? entry.replace("Subclass: ", "") : undefined;
     };
 
-    const getFeatureDescription = (featName: string): string | null => {
-        // 1. Check Generic/Global Glossary
-        if (GENERIC_FEATURES[featName]) return GENERIC_FEATURES[featName];
+    // Helper to find feature description for Level Up preview
+    const getFeatureDescription = (featureName: string) => {
+        // 1. Check Generic Features (e.g., Extra Attack, Cunning Action)
+        if (GENERIC_FEATURES[featureName]) return GENERIC_FEATURES[featureName];
 
-        // 2. Check Class Details (Level 1)
-        const classTrait = CLASS_DETAILS[character.class]?.traits.find(t => t.name === featName);
+        // 2. Check Class Features specific to the class
+        const classTraits = CLASS_DETAILS[character.class]?.traits || [];
+        const classTrait = classTraits.find(t => t.name === featureName);
         if (classTrait) return classTrait.description;
 
-        // 3. Check Species Traits
-        const speciesTrait = SPECIES_DETAILS[character.species]?.traits.find(t => t.name === featName);
+        // 3. Check Species Traits (rarely added on level up but possible)
+        const speciesTraits = SPECIES_DETAILS[character.species]?.traits || [];
+        const speciesTrait = speciesTraits.find(t => t.name === featureName);
         if (speciesTrait) return speciesTrait.description;
 
-        // 4. Handle "Feat: X"
-        if (featName.startsWith('Feat: ')) {
-            const rawName = featName.replace('Feat: ', '');
-            const feat = FEAT_OPTIONS.find(f => f.name === rawName);
-            if (feat) return feat.description;
-        }
+        // 4. Check Feats
+        const feat = FEAT_OPTIONS.find(f => f.name === featureName);
+        if (feat) return feat.description;
 
-        // 5. Handle "Subclass: X"
-        if (featName.startsWith('Subclass: ')) {
-            const rawName = featName.replace('Subclass: ', '');
-            const sc = SUBCLASS_OPTIONS[character.class]?.find(s => s.name === rawName);
-            if (sc) return sc.description;
-        }
-        
-        // 6. Check Background Feat (Origin Feat)
-        if (featName === character.originFeat) {
-             const bg = BACKGROUNDS_DATA[character.background];
-             if (bg && bg.featDescription) return bg.featDescription;
-             const standardFeat = FEAT_OPTIONS.find(f => f.name === featName);
-             if(standardFeat) return standardFeat.description;
-        }
-
-        // 7. Deep check for subclass features
-        const mySubclass = getCharacterSubclass(character);
-        if (mySubclass) {
-             const subData = SUBCLASS_OPTIONS[character.class]?.find(s => s.name === mySubclass);
-             if (subData) {
-                 for (const lvl in subData.features) {
-                     const feat = subData.features[lvl].find(f => f.name === featName);
-                     if (feat) return feat.description;
-                 }
-             }
-        }
-
-        return null;
+        return undefined;
     };
+
+    // --- FEATURE RESOLUTION LOGIC ---
+    // This organizes features into groups and finds their descriptions
+    const groupedFeatures = useMemo(() => {
+        const groups: Record<string, FeatureItem[]> = {
+            'Class': [],
+            'Species': [],
+            'Feat': [],
+            'Background': [],
+            'General': []
+        };
+
+        const currentSpeciesTraits = SPECIES_DETAILS[character.species]?.traits || [];
+        const currentClassTraits = CLASS_DETAILS[character.class]?.traits || [];
+        const currentBackground = BACKGROUNDS_DATA[character.background];
+
+        // 1. Process explicit character features list
+        character.features.forEach(featName => {
+            let item: FeatureItem = { name: featName, description: '', source: 'General' };
+            let found = false;
+
+            // Check Species
+            const speciesMatch = currentSpeciesTraits.find(t => t.name === featName);
+            if (speciesMatch) {
+                item = { name: featName, description: speciesMatch.description, source: 'Species' };
+                groups['Species'].push(item);
+                found = true;
+            }
+
+            // Check Class (Generic)
+            if (!found) {
+                const classMatch = currentClassTraits.find(t => t.name === featName);
+                if (classMatch) {
+                    item = { name: featName, description: classMatch.description, source: 'Class' };
+                    groups['Class'].push(item);
+                    found = true;
+                }
+            }
+
+            // Check Subclass & Subclass Features
+            if (!found) {
+                if (featName.startsWith('Subclass: ')) {
+                    const scName = featName.replace('Subclass: ', '');
+                    const scData = SUBCLASS_OPTIONS[character.class]?.find(s => s.name === scName);
+                    item = { name: scName, description: scData?.description || 'Your chosen path.', source: 'Class' };
+                    groups['Class'].push(item);
+                    found = true;
+                } else {
+                    // Try to find if this is a subclass feature
+                    const mySubclass = getCharacterSubclass(character);
+                    if (mySubclass) {
+                         const subData = SUBCLASS_OPTIONS[character.class]?.find(s => s.name === mySubclass);
+                         if (subData) {
+                             // Iterate all levels to find feature
+                             for (const lvl in subData.features) {
+                                 const f = subData.features[lvl].find(sf => sf.name === featName);
+                                 if (f) {
+                                     item = { name: featName, description: f.description, source: 'Class' };
+                                     groups['Class'].push(item);
+                                     found = true;
+                                     break;
+                                 }
+                             }
+                         }
+                    }
+                }
+            }
+
+            // Check Feats
+            if (!found) {
+                if (featName.startsWith('Feat: ')) {
+                    const cleanName = featName.replace('Feat: ', '');
+                    const fData = FEAT_OPTIONS.find(f => f.name === cleanName);
+                    item = { name: cleanName, description: fData?.description || 'A special feat.', source: 'Feat' };
+                    groups['Feat'].push(item);
+                    found = true;
+                } else if (featName === character.originFeat) {
+                    const fData = FEAT_OPTIONS.find(f => f.name === featName);
+                    // Origin feat usually comes from background, but we list it under Feats or Background
+                    item = { name: featName, description: fData?.description || currentBackground?.featDescription || '', source: 'Feat' };
+                    groups['Feat'].push(item);
+                    found = true;
+                }
+            }
+            
+            // Check Background explicitly
+            if (!found && featName === character.background) {
+                 item = { name: featName, description: currentBackground?.description || '', source: 'Background' };
+                 groups['Background'].push(item);
+                 found = true;
+            }
+
+            // Fallback: Generic Dictionary or Class Default
+            if (!found) {
+                const genericDesc = GENERIC_FEATURES[featName];
+                if (genericDesc) {
+                    // Assume it's a class feature if not found elsewhere but in generics (common for core mechanics)
+                    item = { name: featName, description: genericDesc, source: 'Class' };
+                    groups['Class'].push(item);
+                } else {
+                    // Pure fallback
+                    item = { name: featName, description: 'Consult your rules for details.', source: 'General' };
+                    groups['General'].push(item);
+                }
+            }
+        });
+
+        // 2. Add implied Species Traits if not in list (Legacy support or fresh char)
+        currentSpeciesTraits.forEach(trait => {
+            // Avoid duplicates
+            if (!groups['Species'].some(i => i.name === trait.name)) {
+                groups['Species'].push({ name: trait.name, description: trait.description, source: 'Species' });
+            }
+        });
+
+        // 3. Add Origin Feat if not in list
+        if (character.originFeat && !groups['Feat'].some(i => i.name === character.originFeat)) {
+             const fData = FEAT_OPTIONS.find(f => f.name === character.originFeat);
+             groups['Feat'].push({ 
+                 name: character.originFeat, 
+                 description: fData?.description || currentBackground?.featDescription || '', 
+                 source: 'Feat' 
+             });
+        }
+
+        return groups;
+    }, [character]);
+
 
     const calculateAutoAC = (charClass: string, stats: Record<Ability, number>, armorName: string, weapons: Weapon[]) => {
         const hasShield = weapons.some(w => w.name === 'Shield') || armorName.includes('Shield');
@@ -398,6 +504,28 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
         transitionDirection === 'right' ? 'slide-in-from-right-8' : 'slide-in-from-left-8'
     }`;
 
+    // Helper to render a feature section
+    const renderFeatureSection = (title: string, icon: React.ReactNode, items: FeatureItem[]) => {
+        if (items.length === 0) return null;
+        return (
+            <div className="mb-6">
+                <SectionHeader icon={icon} title={title} />
+                <div className="space-y-3">
+                    {items.map((feat, idx) => (
+                        <div key={idx} className="bg-stone-900/60 p-4 rounded-xl border border-stone-800/50 hover:bg-stone-900/80 transition-colors">
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="text-stone-200 font-bold text-sm">{feat.name}</span>
+                            </div>
+                            <p className="text-stone-500 text-xs leading-relaxed">
+                                {feat.description}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div 
             className="min-h-screen bg-stone-950 font-sans pb-32" 
@@ -649,31 +777,20 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                                 </div>
                             )}
 
-                            {/* Features (Moved from Hero) */}
+                            {/* Features (Refactored to Categories) */}
                             <div>
-                                <SectionHeader icon={<Sparkles size={16}/>} title="Features & Traits" />
-                                <div className="space-y-3">
-                                    <div className="flex gap-2 mb-4 overflow-x-auto pb-2 no-scrollbar">
-                                        <Badge>{character.background}</Badge>
-                                        <Badge color="indigo">{character.originFeat}</Badge>
-                                        <Badge color="stone">{character.species}</Badge>
-                                    </div>
-                                    {character.features.map((featName, idx) => {
-                                        const description = getFeatureDescription(featName);
-                                        return (
-                                            <div key={idx} className="bg-stone-900/60 p-4 rounded-xl border border-stone-800/50">
-                                                <div className="flex items-center gap-3 mb-1">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-700 shrink-0"></div>
-                                                    <span className="text-stone-200 font-bold text-sm">{featName}</span>
-                                                </div>
-                                                {description && (
-                                                    <p className="text-stone-500 text-xs leading-relaxed pl-4.5">
-                                                        {description}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
+                                <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar">
+                                    <Badge>{character.background}</Badge>
+                                    <Badge color="indigo">{character.originFeat}</Badge>
+                                    <Badge color="stone">{character.species}</Badge>
+                                </div>
+                                
+                                <div className="space-y-6">
+                                    {renderFeatureSection(`${character.class} Features`, <Crown size={16}/>, groupedFeatures['Class'])}
+                                    {renderFeatureSection(`${character.species} Traits`, <Dna size={16}/>, groupedFeatures['Species'])}
+                                    {renderFeatureSection('Feats & Talents', <Star size={16}/>, groupedFeatures['Feat'])}
+                                    {renderFeatureSection('Background', <Scroll size={16}/>, groupedFeatures['Background'])}
+                                    {renderFeatureSection('General', <Sparkles size={16}/>, groupedFeatures['General'])}
                                 </div>
                             </div>
                         </div>
@@ -716,36 +833,6 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                         </div>
                     )}
                 </div>
-            </div>
-
-            {/* --- FOOTER NAVIGATION (Fixed) --- */}
-            <div className="fixed bottom-0 w-full bg-stone-950/95 backdrop-blur-md border-t border-stone-800 pb-safe z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
-                <nav className="flex justify-around items-center h-[60px] w-full max-w-lg mx-auto px-2">
-                    <NavButton 
-                        active={activeTab === 'main'} 
-                        onClick={() => handleTabChange('main')} 
-                        icon={<User size={22}/>} 
-                        label="Hero" 
-                    />
-                    <NavButton 
-                        active={activeTab === 'combat'} 
-                        onClick={() => handleTabChange('combat')} 
-                        icon={<Swords size={22}/>} 
-                        label="Combat" 
-                    />
-                    <NavButton 
-                        active={activeTab === 'spells'} 
-                        onClick={() => handleTabChange('spells')} 
-                        icon={<BookOpen size={22}/>} 
-                        label="Spells" 
-                    />
-                    <NavButton 
-                        active={activeTab === 'inventory'} 
-                        onClick={() => handleTabChange('inventory')} 
-                        icon={<Backpack size={22}/>} 
-                        label="Items" 
-                    />
-                </nav>
             </div>
 
             {/* --- LEVEL UP MODAL (WIZARD STYLE) --- */}
