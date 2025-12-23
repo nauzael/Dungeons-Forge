@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { SPECIES_LIST, CLASS_LIST, BACKGROUNDS_DATA, STANDARD_ARRAY, ABILITY_NAMES, HIT_DIE, CLASS_FEATURES, STARTING_WEAPONS, CLASS_STAT_PRIORITIES } from '../constants';
-import { Character, AbilityScores, Ability, Weapon } from '../types';
+import { SPECIES_LIST, CLASS_LIST, BACKGROUNDS_DATA, STANDARD_ARRAY, ABILITY_NAMES, HIT_DIE, CLASS_FEATURES, CLASS_STAT_PRIORITIES, CLASS_DETAILS, SPECIES_DETAILS, DetailData, ALIGNMENTS, LANGUAGES, BackgroundData, CLASS_SKILL_DATA, SKILL_LIST } from '../constants';
+import { Character, AbilityScores, Ability, Weapon, Skill } from '../types';
 import { generateCharacterName, generateBackstory } from '../services/geminiService';
-import { ChevronRight, ChevronLeft, Save, Sparkles, Loader2, Info, Dices, Keyboard, Wand2 } from 'lucide-react';
+import { ChevronRight, Save, Sparkles, Loader2, Wand2, X, Check, GraduationCap } from 'lucide-react';
 
 interface CharacterCreatorProps {
     onSave: (character: Character) => void;
@@ -23,6 +23,16 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
     const [backstory, setBackstory] = useState('');
     const [suggestedNames, setSuggestedNames] = useState<string[]>([]);
     
+    // Details State (Step 3)
+    const [alignment, setAlignment] = useState(ALIGNMENTS[4]); // True Neutral default
+    const [language, setLanguage] = useState(LANGUAGES[0]); // Common default
+
+    // Proficiency State (Step 4)
+    const [selectedClassSkills, setSelectedClassSkills] = useState<Skill[]>([]);
+
+    // Modal State
+    const [activeModal, setActiveModal] = useState<'class' | 'species' | 'background' | 'alignment' | 'language' | null>(null);
+
     // Ability Score Allocation State
     const [scoreMethod, setScoreMethod] = useState<'standard' | 'manual'>('standard');
     const [scoreAllocation, setScoreAllocation] = useState<(number | null)[]>([...STANDARD_ARRAY]);
@@ -31,11 +41,19 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
     });
 
     const currentBackgroundData = BACKGROUNDS_DATA[background];
+    const currentClassData = CLASS_DETAILS[charClass];
+    const currentSpeciesData = SPECIES_DETAILS[species];
+    const currentClassSkills = CLASS_SKILL_DATA[charClass];
 
     // Scroll to top on step change
     useEffect(() => {
         window.scrollTo(0, 0);
     }, [step]);
+
+    // Reset selections when class/background changes
+    useEffect(() => {
+        setSelectedClassSkills([]);
+    }, [charClass, background]);
 
     const handleGenerateNames = async () => {
         setIsLoadingAI(true);
@@ -84,6 +102,16 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
         const numVal = parseInt(value) || 0;
         setAssignedScores(prev => ({ ...prev, [ability]: numVal }));
     };
+
+    const toggleClassSkill = (skill: Skill) => {
+        if (selectedClassSkills.includes(skill)) {
+            setSelectedClassSkills(prev => prev.filter(s => s !== skill));
+        } else {
+            if (selectedClassSkills.length < currentClassSkills.count) {
+                setSelectedClassSkills(prev => [...prev, skill]);
+            }
+        }
+    };
     
     useEffect(() => {
         const newScores = { ...scores };
@@ -115,14 +143,18 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
         const conMod = mod(finalScores.CON);
         const dexMod = mod(finalScores.DEX);
 
-        let startingWeapons: Weapon[] = [];
-        if (['Fighter', 'Paladin', 'Barbarian', 'Ranger'].includes(charClass)) {
-            startingWeapons = [STARTING_WEAPONS['Greatsword'], STARTING_WEAPONS['Longbow']];
-        } else if (['Rogue', 'Bard', 'Monk'].includes(charClass)) {
-             startingWeapons = [STARTING_WEAPONS['Shortsword'], STARTING_WEAPONS['Dagger']];
-        } else {
-             startingWeapons = [STARTING_WEAPONS['Quarterstaff'], STARTING_WEAPONS['Light Crossbow']];
-        }
+        const finalWeapons: Weapon[] = []; // No weapons selected at creation
+        const finalEquipment: string[] = [
+            ...(currentBackgroundData.equipment || []),
+            "Backpack", 
+            "Bedroll", 
+            "Rations (5)"
+        ];
+
+        const languages = Array.from(new Set(['Common', language]));
+        
+        // Combine Skills
+        const finalSkills = [...currentBackgroundData.skills, ...selectedClassSkills];
 
         const newCharacter: Character = {
             id: crypto.randomUUID(),
@@ -131,17 +163,20 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
             class: charClass,
             level: 1,
             background,
+            alignment,
+            size: currentSpeciesData.size || 'Medium',
             abilityScores: finalScores,
             maxHp: HIT_DIE[charClass] + conMod,
             currentHp: HIT_DIE[charClass] + conMod,
             tempHp: 0,
-            armorClass: 10 + dexMod, 
-            speed: 30,
+            armorClass: 10 + dexMod,
+            speed: currentSpeciesData.speed || 30,
             initiative: dexMod,
             proficiencyBonus: 2,
-            skills: [], 
-            weapons: startingWeapons,
-            equipment: ['Backpack', 'Rations (5 days)', 'Waterskin', 'Bedroll'],
+            skills: finalSkills, 
+            weapons: finalWeapons,
+            equipment: finalEquipment, 
+            languages,
             backstory,
             features: CLASS_FEATURES[charClass] || [],
             originFeat: currentBackgroundData.feat
@@ -150,18 +185,18 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
     };
 
     return (
-        <div className="min-h-screen bg-stone-900 pb-28 flex flex-col font-sans">
+        <div className="min-h-screen bg-stone-900 pb-28 flex flex-col font-sans relative">
             {/* Sticky Header */}
             <div className="sticky top-0 z-30 bg-stone-950 p-6 border-b border-stone-800 flex justify-between items-center shadow-lg">
                 <h2 className="text-xl font-serif font-bold text-amber-500">New Character</h2>
                 <div className="flex gap-2">
-                    {[1, 2, 3, 4].map(s => (
-                        <div key={s} className={`w-2.5 h-2.5 rounded-full ${step >= s ? 'bg-amber-600' : 'bg-stone-800'}`} />
+                    {[1, 2, 3, 4, 5].map(s => (
+                        <div key={s} className={`w-2 h-2 rounded-full transition-colors ${step >= s ? 'bg-amber-600' : 'bg-stone-800'}`} />
                     ))}
                 </div>
             </div>
 
-            {/* Content Body (Native Scroll) */}
+            {/* Content Body */}
             <div className="p-6">
                 
                 {/* Step 1: Class & Origin */}
@@ -199,38 +234,49 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
                              {/* Class Selection */}
                              <div>
                                 <label className="block text-stone-400 font-bold mb-2 uppercase text-xs tracking-wider">Class</label>
-                                <select 
-                                    className="w-full bg-stone-800 border border-stone-700 text-stone-200 rounded-xl p-4 text-lg focus:ring-1 focus:ring-amber-600 focus:outline-none"
-                                    value={charClass}
-                                    onChange={(e) => setCharClass(e.target.value)}
+                                <button
+                                    onClick={() => setActiveModal('class')}
+                                    className="w-full bg-stone-800 border border-stone-700 hover:bg-stone-700 text-left rounded-xl p-4 flex justify-between items-center group transition-all"
                                 >
-                                    {CLASS_LIST.map(c => <option key={c} value={c}>{c}</option>)}
-                                </select>
+                                    <div>
+                                        <div className="text-xl font-bold text-stone-200 font-serif mb-1">{charClass}</div>
+                                        <div className="text-xs text-stone-500">{currentClassData?.description}</div>
+                                    </div>
+                                    <ChevronRight className="text-stone-500 group-hover:text-amber-500 transition-colors" />
+                                </button>
                             </div>
 
                             {/* Species Selection */}
                             <div>
                                 <label className="block text-stone-400 font-bold mb-2 uppercase text-xs tracking-wider">Species</label>
-                                <select 
-                                    className="w-full bg-stone-800 border border-stone-700 text-stone-200 rounded-xl p-4 text-lg focus:ring-1 focus:ring-amber-600 focus:outline-none"
-                                    value={species}
-                                    onChange={(e) => setSpecies(e.target.value)}
+                                <button
+                                    onClick={() => setActiveModal('species')}
+                                    className="w-full bg-stone-800 border border-stone-700 hover:bg-stone-700 text-left rounded-xl p-4 flex justify-between items-center group transition-all"
                                 >
-                                    {SPECIES_LIST.map(s => <option key={s} value={s}>{s}</option>)}
-                                </select>
+                                    <div>
+                                        <div className="text-xl font-bold text-stone-200 font-serif mb-1">{species}</div>
+                                        <div className="text-xs text-stone-500">{currentSpeciesData?.description}</div>
+                                    </div>
+                                    <ChevronRight className="text-stone-500 group-hover:text-amber-500 transition-colors" />
+                                </button>
                             </div>
                         </div>
 
                         {/* Background Selection */}
                         <div>
                             <label className="block text-stone-400 font-bold mb-2 uppercase text-xs tracking-wider">Background</label>
-                            <select 
-                                className="w-full bg-stone-800 border border-stone-700 text-stone-200 rounded-xl p-4 text-lg focus:ring-1 focus:ring-amber-600 focus:outline-none mb-4"
-                                value={background}
-                                onChange={(e) => setBackground(e.target.value)}
+                            <button
+                                onClick={() => setActiveModal('background')}
+                                className="w-full bg-stone-800 border border-stone-700 hover:bg-stone-700 text-left rounded-xl p-4 flex justify-between items-center group transition-all mb-4"
                             >
-                                {Object.keys(BACKGROUNDS_DATA).map(b => <option key={b} value={b}>{b}</option>)}
-                            </select>
+                                <div>
+                                    <div className="text-xl font-bold text-stone-200 font-serif mb-1">{background}</div>
+                                    <div className="text-xs text-stone-500">
+                                        Feat: <span className="text-indigo-400">{currentBackgroundData.feat}</span>
+                                    </div>
+                                </div>
+                                <ChevronRight className="text-stone-500 group-hover:text-amber-500 transition-colors" />
+                            </button>
                             
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-stone-950/50 p-4 rounded-xl border border-stone-800">
@@ -329,31 +375,130 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
                     </div>
                 )}
 
-                {/* Step 3: Backstory */}
+                {/* Step 3: Details (Alignment, Languages, Backstory) */}
                 {step === 3 && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
-                        <div className="flex justify-between items-center">
-                             <h3 className="text-xl font-bold text-stone-200">Backstory</h3>
-                             <button 
-                                onClick={handleGenerateBackstory}
-                                disabled={isLoadingAI || !name}
-                                className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors font-bold disabled:opacity-50"
-                            >
-                                {isLoadingAI ? <Loader2 className="animate-spin" size={16}/> : <Sparkles size={16}/>}
-                                Generate
-                            </button>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Alignment Selection */}
+                            <div>
+                                <label className="block text-stone-400 font-bold mb-2 uppercase text-xs tracking-wider">Alignment</label>
+                                <button
+                                    onClick={() => setActiveModal('alignment')}
+                                    className="w-full bg-stone-800 border border-stone-700 hover:bg-stone-700 text-left rounded-xl p-4 flex justify-between items-center group transition-all"
+                                >
+                                    <div className="text-xl font-bold text-stone-200 font-serif">{alignment}</div>
+                                    <ChevronRight className="text-stone-500 group-hover:text-amber-500 transition-colors" />
+                                </button>
+                            </div>
+                            
+                            {/* Language Selection */}
+                            <div>
+                                <label className="block text-stone-400 font-bold mb-2 uppercase text-xs tracking-wider">Extra Language</label>
+                                <button
+                                    onClick={() => setActiveModal('language')}
+                                    className="w-full bg-stone-800 border border-stone-700 hover:bg-stone-700 text-left rounded-xl p-4 flex justify-between items-center group transition-all"
+                                >
+                                    <div>
+                                        <div className="text-xl font-bold text-stone-200 font-serif">{language}</div>
+                                        <div className="text-xs text-stone-500">Plus: Common</div>
+                                    </div>
+                                    <ChevronRight className="text-stone-500 group-hover:text-amber-500 transition-colors" />
+                                </button>
+                            </div>
                         </div>
-                        <textarea 
-                            className="w-full h-80 bg-stone-950 border border-stone-800 text-stone-300 rounded-xl p-5 text-lg leading-relaxed focus:ring-1 focus:ring-amber-600 focus:outline-none"
-                            placeholder="Once upon a time..."
-                            value={backstory}
-                            onChange={(e) => setBackstory(e.target.value)}
-                        />
+
+                        {/* Backstory */}
+                        <div>
+                            <div className="flex justify-between items-center mb-2">
+                                 <label className="text-stone-400 font-bold uppercase text-xs tracking-wider">Backstory</label>
+                                 <button 
+                                    onClick={handleGenerateBackstory}
+                                    disabled={isLoadingAI || !name}
+                                    className="text-indigo-400 hover:text-indigo-300 text-xs flex items-center gap-1.5 transition-colors font-bold disabled:opacity-50"
+                                >
+                                    {isLoadingAI ? <Loader2 className="animate-spin" size={14}/> : <Sparkles size={14}/>}
+                                    Generate with Gemini
+                                </button>
+                            </div>
+                            <textarea 
+                                className="w-full h-64 bg-stone-950 border border-stone-800 text-stone-300 rounded-xl p-5 text-lg leading-relaxed focus:ring-1 focus:ring-amber-600 focus:outline-none"
+                                placeholder="Once upon a time..."
+                                value={backstory}
+                                onChange={(e) => setBackstory(e.target.value)}
+                            />
+                        </div>
                     </div>
                 )}
 
-                 {/* Step 4: Review */}
-                 {step === 4 && (
+                {/* Step 4: Proficiencies Selection */}
+                {step === 4 && (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
+                        <h3 className="text-xl font-bold text-stone-200 flex items-center gap-2">
+                            <GraduationCap size={20}/> Proficiencies
+                        </h3>
+                        
+                        {/* Background Skills (Fixed) */}
+                        <div className="bg-stone-950/50 p-4 rounded-xl border border-stone-800">
+                            <span className="text-stone-500 font-bold text-xs uppercase tracking-wider block mb-2">Background Skills ({background})</span>
+                            <div className="flex flex-wrap gap-2">
+                                {currentBackgroundData.skills.map((skill, idx) => (
+                                    <span key={idx} className="bg-amber-950/30 text-amber-500 text-xs font-bold px-3 py-1.5 rounded-lg border border-amber-900/40 flex items-center gap-1">
+                                        <Check size={12}/> {skill}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+
+                         {/* Class Skill Choices */}
+                         <div className="bg-stone-900 p-5 rounded-xl border border-stone-700">
+                            <div className="flex justify-between items-end mb-3">
+                                 <label className="text-stone-400 font-bold text-xs uppercase tracking-wider">
+                                    Class Skills ({charClass})
+                                 </label>
+                                 <span className={`text-xs font-bold px-2 py-0.5 rounded ${selectedClassSkills.length === currentClassSkills.count ? 'bg-green-900 text-green-300' : 'bg-stone-800 text-stone-400'}`}>
+                                    Selected: {selectedClassSkills.length} / {currentClassSkills.count}
+                                 </span>
+                            </div>
+                             
+                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                 {/* Determine available options: Either 'Any' or specific list */}
+                                 {(currentClassSkills.options === 'Any' ? SKILL_LIST : currentClassSkills.options).map(skill => {
+                                     // Check if skill is already granted by background
+                                     const isBackgroundSkill = currentBackgroundData.skills.includes(skill);
+                                     const isSelected = selectedClassSkills.includes(skill);
+                                     const isDisabled = isBackgroundSkill || (!isSelected && selectedClassSkills.length >= currentClassSkills.count);
+
+                                     if (isBackgroundSkill) return null; // Or render disabled state
+
+                                     return (
+                                         <label 
+                                            key={skill}
+                                            className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-all select-none
+                                                ${isSelected ? 'bg-indigo-950/30 border-indigo-500/50' : 'bg-stone-950 border-stone-800'}
+                                                ${isDisabled && !isSelected ? 'opacity-50 cursor-not-allowed' : 'hover:border-stone-600'}
+                                            `}
+                                         >
+                                             <input 
+                                                type="checkbox" 
+                                                checked={isSelected}
+                                                disabled={isDisabled}
+                                                onChange={() => toggleClassSkill(skill)}
+                                                className="w-4 h-4 text-indigo-500 rounded focus:ring-indigo-500 border-stone-600 bg-stone-900"
+                                             />
+                                             <span className={`text-sm font-medium ${isSelected ? 'text-indigo-300' : 'text-stone-400'}`}>{skill}</span>
+                                         </label>
+                                     );
+                                 })}
+                             </div>
+                             {currentClassSkills.options === 'Any' && (
+                                 <p className="text-xs text-stone-500 mt-2 italic">Bards may choose any skills not already provided by their background.</p>
+                             )}
+                         </div>
+                    </div>
+                )}
+
+                 {/* Step 5: Review */}
+                 {step === 5 && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
                         <div className="bg-stone-900 rounded-2xl p-8 border border-stone-800 flex flex-col items-center text-center">
                             <div className="w-24 h-24 bg-stone-800 rounded-full flex items-center justify-center text-4xl font-serif text-amber-500 mb-4 shadow-inner border border-stone-700">
@@ -364,10 +509,10 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
                             
                             <div className="flex gap-2 mb-6">
                                 <span className="bg-stone-950 px-3 py-1 rounded-lg text-sm text-stone-400 border border-stone-800 font-bold">{background}</span>
-                                <span className="bg-indigo-950/30 px-3 py-1 rounded-lg text-sm text-indigo-400 border border-indigo-900/30 font-bold">{currentBackgroundData.feat}</span>
+                                <span className="bg-stone-950 px-3 py-1 rounded-lg text-sm text-stone-400 border border-stone-800 font-bold">{alignment}</span>
                             </div>
 
-                            <div className="grid grid-cols-6 gap-2 w-full max-w-md">
+                            <div className="grid grid-cols-6 gap-2 w-full max-w-md mb-6">
                                 {(Object.keys(scores) as Ability[]).map(key => {
                                     const base = scores[key];
                                     const final = getBackgroundAdjustedScore(key, base);
@@ -379,6 +524,21 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
                                     </div>
                                 )})}
                             </div>
+
+                            <div className="w-full bg-stone-950/50 rounded-xl p-4 border border-stone-800 text-left mb-4">
+                                <h5 className="text-stone-400 font-bold text-xs uppercase tracking-wider mb-2 flex items-center gap-2">
+                                    <GraduationCap size={14}/> Skills
+                                </h5>
+                                <div className="flex flex-wrap gap-2">
+                                    {[...currentBackgroundData.skills, ...selectedClassSkills].map(s => (
+                                        <span key={s} className="text-xs bg-stone-900 text-stone-300 px-2 py-1 rounded border border-stone-700">{s}</span>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            <div className="p-4 rounded-xl border border-stone-800 bg-stone-950/30 text-center">
+                                <p className="text-sm text-stone-500 italic">Weapons and Armor can be equipped on your Character Sheet.</p>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -386,7 +546,7 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
             </div>
 
             {/* Footer Navigation (Fixed Bottom) */}
-            <div className="fixed bottom-0 w-full bg-stone-950 p-4 border-t border-stone-800 flex justify-between gap-4 z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+            <div className="fixed bottom-0 w-full bg-stone-950 p-4 border-t border-stone-800 flex justify-between gap-4 z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
                 <button 
                     onClick={() => step === 1 ? onCancel() : setStep(s => s - 1)}
                     className="flex-1 bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white py-4 rounded-xl font-bold transition-colors border border-stone-800"
@@ -394,7 +554,7 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
                     {step === 1 ? 'Cancel' : 'Back'}
                 </button>
 
-                {step < 4 ? (
+                {step < 5 ? (
                     <button 
                         onClick={() => setStep(s => s + 1)}
                         className="flex-[2] bg-stone-100 hover:bg-white text-stone-950 py-4 rounded-xl font-bold transition-colors shadow-lg flex items-center justify-center gap-2"
@@ -409,6 +569,148 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
                         <Save size={20}/> Create
                     </button>
                 )}
+            </div>
+
+            {/* --- SELECTION MODALS --- */}
+            {activeModal === 'class' && (
+                <SelectionModal 
+                    title="Choose Class"
+                    options={CLASS_LIST}
+                    selected={charClass}
+                    detailsMap={CLASS_DETAILS}
+                    onSelect={(val) => { setCharClass(val); setActiveModal(null); }}
+                    onClose={() => setActiveModal(null)}
+                />
+            )}
+            {activeModal === 'species' && (
+                <SelectionModal 
+                    title="Choose Species"
+                    options={SPECIES_LIST}
+                    selected={species}
+                    detailsMap={SPECIES_DETAILS}
+                    onSelect={(val) => { setSpecies(val); setActiveModal(null); }}
+                    onClose={() => setActiveModal(null)}
+                />
+            )}
+            {activeModal === 'background' && (
+                <SelectionModal 
+                    title="Choose Background"
+                    options={Object.keys(BACKGROUNDS_DATA)}
+                    selected={background}
+                    backgroundMap={BACKGROUNDS_DATA}
+                    onSelect={(val) => { setBackground(val); setActiveModal(null); }}
+                    onClose={() => setActiveModal(null)}
+                />
+            )}
+            {activeModal === 'alignment' && (
+                <SelectionModal 
+                    title="Choose Alignment"
+                    options={ALIGNMENTS}
+                    selected={alignment}
+                    onSelect={(val) => { setAlignment(val); setActiveModal(null); }}
+                    onClose={() => setActiveModal(null)}
+                />
+            )}
+            {activeModal === 'language' && (
+                <SelectionModal 
+                    title="Choose Additional Language"
+                    options={LANGUAGES}
+                    selected={language}
+                    onSelect={(val) => { setLanguage(val); setActiveModal(null); }}
+                    onClose={() => setActiveModal(null)}
+                />
+            )}
+        </div>
+    );
+};
+
+// --- Subcomponents ---
+
+const SelectionModal: React.FC<{
+    title: string;
+    options: string[];
+    selected: string;
+    onSelect: (val: string) => void;
+    onClose: () => void;
+    detailsMap?: Record<string, DetailData>;
+    backgroundMap?: Record<string, BackgroundData>;
+}> = ({ title, options, selected, onSelect, onClose, detailsMap, backgroundMap }) => {
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-stone-950/80 backdrop-blur-sm" onClick={onClose} />
+            <div className="bg-stone-900 w-full max-w-lg max-h-[85vh] rounded-2xl border border-stone-800 shadow-2xl relative z-10 flex flex-col animate-in zoom-in-95 duration-200">
+                <div className="p-4 border-b border-stone-800 flex justify-between items-center">
+                    <h3 className="text-xl font-serif font-bold text-stone-100">{title}</h3>
+                    <button onClick={onClose} className="p-2 hover:bg-stone-800 rounded-lg text-stone-500 hover:text-white transition-colors">
+                        <X size={20} />
+                    </button>
+                </div>
+                <div className="overflow-y-auto p-4 custom-scrollbar space-y-3">
+                    {options.map(opt => {
+                        const isSelected = selected === opt;
+                        const details = detailsMap ? detailsMap[opt] : null;
+                        const bgDetails = backgroundMap ? backgroundMap[opt] : null;
+                        
+                        return (
+                            <button
+                                key={opt}
+                                onClick={() => onSelect(opt)}
+                                className={`w-full text-left p-4 rounded-xl border transition-all ${isSelected ? 'bg-amber-900/20 border-amber-600 ring-1 ring-amber-600/30' : 'bg-stone-950 border-stone-800 hover:border-stone-600'}`}
+                            >
+                                <div className="flex justify-between items-start mb-2">
+                                    <span className={`font-bold text-lg font-serif ${isSelected ? 'text-amber-500' : 'text-stone-200'}`}>{opt}</span>
+                                    {isSelected && <Check size={20} className="text-amber-500" />}
+                                </div>
+                                
+                                {details && (
+                                    <div className="space-y-3">
+                                        <p className="text-sm text-stone-400 italic leading-relaxed">{details.description}</p>
+                                        
+                                        {/* Size & Speed */}
+                                        {(details.size || details.speed) && (
+                                            <div className="flex gap-3 text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                                                {details.size && <span className="flex items-center gap-1">Size: <span className="text-stone-300">{details.size}</span></span>}
+                                                {details.speed && <span className="flex items-center gap-1">Speed: <span className="text-stone-300">{details.speed}ft</span></span>}
+                                            </div>
+                                        )}
+
+                                        {/* Traits */}
+                                        {details.traits && details.traits.length > 0 && (
+                                            <div className={`mt-2 ${isSelected ? 'space-y-2' : 'flex flex-wrap gap-1'}`}>
+                                                {isSelected ? (
+                                                    // Detailed view for selected item
+                                                    details.traits.map(t => (
+                                                        <div key={t.name} className="bg-stone-900/50 p-2 rounded border border-stone-800">
+                                                            <span className="text-xs font-bold text-amber-500 block">{t.name}</span>
+                                                            <span className="text-xs text-stone-400">{t.description}</span>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    // Compact badges for unselected
+                                                    details.traits.map(t => (
+                                                        <span key={t.name} className="px-2 py-0.5 rounded bg-stone-900 border border-stone-800 text-[10px] text-stone-400 font-medium">
+                                                            {t.name}
+                                                        </span>
+                                                    ))
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                
+                                {bgDetails && (
+                                    <div className="mt-1">
+                                        <p className="text-sm text-stone-500 line-clamp-2 mb-2">{bgDetails.description}</p>
+                                        <div className="flex gap-2">
+                                            <span className="text-[10px] bg-stone-900 text-stone-400 px-2 py-1 rounded border border-stone-800 font-bold uppercase">{bgDetails.scores.join('/')}</span>
+                                            <span className="text-[10px] bg-indigo-900/30 text-indigo-300 px-2 py-1 rounded border border-indigo-900/50 font-bold">{bgDetails.feat}</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );

@@ -16,8 +16,9 @@ export type Skill =
   | 'Nature' | 'Perception' | 'Performance' | 'Persuasion' | 'Religion' 
   | 'Sleight of Hand' | 'Stealth' | 'Survival';
 
-export type WeaponProperty = 'Light' | 'Finesse' | 'Thrown' | 'Two-Handed' | 'Versatile' | 'Reach' | 'Loading' | 'Ammunition' | 'Heavy';
-export type MasteryProperty = 'Cleave' | 'Graze' | 'Nick' | 'Push' | 'Sap' | 'Slow' | 'Topple' | 'Vex';
+// Relaxed to string to allow property variants like 'Thrown (20/60)' or 'Range (80/320)' used in constants
+export type WeaponProperty = string;
+export type MasteryProperty = 'Cleave' | 'Graze' | 'Nick' | 'Push' | 'Sap' | 'Slow' | 'Topple' | 'Vex' | '-';
 
 export interface Weapon {
   name: string;
@@ -35,6 +36,8 @@ export interface Character {
   class: string;
   level: number;
   background: string;
+  alignment: string; // New 2024
+  size: 'Small' | 'Medium'; // New 2024
   abilityScores: AbilityScores;
   maxHp: number;
   currentHp: number;
@@ -44,6 +47,7 @@ export interface Character {
   initiative: number;
   proficiencyBonus: number;
   skills: Skill[];
+  languages: string[]; // New 2024
   weapons: Weapon[];
   equipment: string[]; // General gear
   backstory: string;

@@ -32,6 +32,10 @@ const App: React.FC = () => {
         setView('dashboard');
     };
 
+    const handleUpdateCharacter = (updatedChar: Character) => {
+        setCharacters(prev => prev.map(c => c.id === updatedChar.id ? updatedChar : c));
+    };
+
     const handleSelectCharacter = (id: string) => {
         setSelectedCharId(id);
         setView('sheet');
@@ -76,6 +80,7 @@ const App: React.FC = () => {
                     <CharacterSheet 
                         character={getSelectedCharacter()!} 
                         onBack={() => setView('dashboard')}
+                        onCharacterUpdate={handleUpdateCharacter}
                     />
                 )}
             </main>
