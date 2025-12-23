@@ -10,7 +10,6 @@ interface CharacterSheetProps {
     onBack: () => void;
 }
 
-// Removed 'rules' from tabs as it is now a modal
 type TabType = 'main' | 'combat' | 'inventory' | 'spells';
 const TABS: TabType[] = ['main', 'combat', 'inventory', 'spells'];
 
@@ -31,7 +30,6 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack }) =>
     const getModifier = (score: number) => Math.floor((score - 10) / 2);
     const formatMod = (mod: number) => mod >= 0 ? `+${mod}` : `${mod}`;
 
-    // Focus input when AI modal opens
     useEffect(() => {
         if (showAiModal && aiInputRef.current) {
             setTimeout(() => aiInputRef.current?.focus(), 100);
@@ -48,7 +46,6 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack }) =>
         setIsAskingAi(false);
     }
 
-    // Swipe Handlers
     const onTouchStart = (e: React.TouchEvent) => {
         setTouchEnd(null);
         setTouchStart(e.targetTouches[0].clientX);
@@ -69,87 +66,81 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack }) =>
             const currentIndex = TABS.indexOf(activeTab);
             if (isLeftSwipe && currentIndex < TABS.length - 1) {
                 setActiveTab(TABS[currentIndex + 1]);
+                window.scrollTo(0, 0); // Reset scroll on tab change
             }
             if (isRightSwipe && currentIndex > 0) {
                 setActiveTab(TABS[currentIndex - 1]);
+                window.scrollTo(0, 0);
             }
         }
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-1rem)] relative overflow-hidden bg-stone-950">
+        <div 
+            className="min-h-screen bg-stone-950 font-sans pb-32" 
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+        >
             
-            {/* --- HEADER --- */}
-            <div className="flex items-center justify-between p-4 bg-stone-900 border-b border-stone-800 shrink-0 z-20 shadow-md">
-                <button onClick={onBack} className="text-stone-400 hover:text-white p-2 -ml-2 rounded-full active:bg-stone-800">
-                    <ArrowLeft size={24}/>
-                </button>
-                
-                <div className="flex flex-col items-center">
-                    <h1 className="text-lg font-serif font-bold text-white leading-tight">{character.name}</h1>
-                    <span className="text-xs text-stone-500 font-bold uppercase tracking-wider">Lvl {character.level} {character.class}</span>
-                </div>
+            {/* --- STICKY HEADER --- */}
+            <div className="sticky top-0 z-50 px-4 py-3 bg-stone-950/95 backdrop-blur-md border-b border-stone-800 shadow-md">
+                <div className="flex items-center justify-between">
+                    <button 
+                        onClick={onBack} 
+                        className="w-10 h-10 flex items-center justify-center text-stone-400 hover:text-white rounded-full active:bg-stone-900 transition-colors"
+                    >
+                        <ArrowLeft size={24}/>
+                    </button>
+                    
+                    <div className="flex flex-col items-center">
+                        <h1 className="text-xl font-serif font-bold text-stone-100 tracking-wide">{character.name}</h1>
+                        <span className="text-[10px] text-stone-500 font-bold uppercase tracking-widest">Lvl {character.level} {character.class}</span>
+                    </div>
 
-                <button 
-                    onClick={() => setShowAiModal(true)} 
-                    className="text-indigo-400 hover:text-indigo-300 bg-indigo-950/30 p-2 rounded-full border border-indigo-900/50 active:bg-indigo-900/50 shadow-[0_0_10px_rgba(99,102,241,0.2)]"
-                >
-                    <BotMessageSquare size={24} />
-                </button>
+                    <button 
+                        onClick={() => setShowAiModal(true)} 
+                        className="w-10 h-10 flex items-center justify-center text-indigo-400 bg-indigo-950/20 rounded-full border border-indigo-900/30 active:bg-indigo-900/50 transition-all shadow-[0_0_15px_rgba(99,102,241,0.1)]"
+                    >
+                        <BotMessageSquare size={22} />
+                    </button>
+                </div>
             </div>
 
-            {/* --- SCROLLABLE CONTENT AREA --- */}
-            <div 
-                className="flex-1 overflow-y-auto custom-scrollbar pb-24" // pb-24 for footer space
-                onTouchStart={onTouchStart}
-                onTouchMove={onTouchMove}
-                onTouchEnd={onTouchEnd}
-            >
-                {/* Vitals Bar (Always visible at top of scroll) */}
-                <div className="grid grid-cols-4 gap-2 p-4 bg-stone-950/50 sticky top-0 z-10 backdrop-blur-sm border-b border-stone-800/50">
-                    <div className="flex flex-col items-center justify-center bg-stone-900 border border-stone-800 rounded p-2">
-                        <span className="text-[10px] text-stone-500 font-bold">AC</span>
-                        <div className="flex items-center gap-1 text-white font-serif font-bold text-xl">
-                            <Shield size={14} className="text-stone-600"/> {character.armorClass}
-                        </div>
-                    </div>
-                    <div className="flex flex-col items-center justify-center bg-stone-900 border border-stone-800 rounded p-2">
-                        <span className="text-[10px] text-stone-500 font-bold">HP</span>
-                        <div className="flex items-center gap-1 text-white font-serif font-bold text-xl">
-                            <Heart size={14} className="text-red-700"/> {character.currentHp}
-                        </div>
-                    </div>
-                    <div className="flex flex-col items-center justify-center bg-stone-900 border border-stone-800 rounded p-2">
-                        <span className="text-[10px] text-stone-500 font-bold">INIT</span>
-                        <div className="flex items-center gap-1 text-white font-serif font-bold text-xl">
-                            <Zap size={14} className="text-yellow-600"/> {formatMod(character.initiative)}
-                        </div>
-                    </div>
-                    <div className="flex flex-col items-center justify-center bg-stone-900 border border-stone-800 rounded p-2">
-                        <span className="text-[10px] text-stone-500 font-bold">PROF</span>
-                        <div className="flex items-center gap-1 text-white font-serif font-bold text-xl">
-                            <Swords size={14} className="text-stone-600"/> +{character.proficiencyBonus}
-                        </div>
+            {/* --- SCROLLABLE CONTENT AREA (Native Scroll) --- */}
+            <div>
+                {/* Vitals Bar - Flows naturally under header */}
+                <div className="px-4 py-4">
+                    <div className="flex justify-between items-center bg-stone-900/50 p-4 rounded-2xl border border-stone-800 shadow-lg">
+                        <VitalStat label="AC" value={character.armorClass} icon={<Shield size={16} className="text-stone-500"/>} />
+                        <div className="w-px h-8 bg-stone-800"></div>
+                        <VitalStat label="HP" value={character.currentHp} icon={<Heart size={16} className="text-red-600"/>} />
+                        <div className="w-px h-8 bg-stone-800"></div>
+                        <VitalStat label="INIT" value={formatMod(character.initiative)} icon={<Zap size={16} className="text-amber-600"/>} />
+                        <div className="w-px h-8 bg-stone-800"></div>
+                        <VitalStat label="PROF" value={`+${character.proficiencyBonus}`} icon={<Swords size={16} className="text-stone-500"/>} />
                     </div>
                 </div>
 
-                <div className="p-4 space-y-6">
+                <div className="px-4 py-2 space-y-8">
                     {/* --- TAB CONTENT --- */}
                     
                     {activeTab === 'main' && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                        <div className="space-y-8 animate-in fade-in slide-in-from-right-8 duration-300">
                             {/* Ability Scores */}
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-3 gap-3">
                                 {(Object.keys(character.abilityScores) as Ability[]).map(ability => {
                                     const score = character.abilityScores[ability];
                                     const mod = getModifier(score);
                                     return (
-                                        <div key={ability} className="bg-stone-900 border border-stone-800 rounded p-2 text-center flex flex-col items-center relative overflow-hidden">
-                                            <span className="text-[10px] text-stone-500 font-bold uppercase tracking-widest z-10">{ability}</span>
-                                            <span className="text-2xl font-bold text-white z-10">{formatMod(mod)}</span>
-                                            <span className="text-xs text-stone-600 z-10">{score}</span>
-                                            {/* Background number watermark */}
-                                            <span className="absolute -bottom-4 -right-2 text-6xl font-serif text-stone-800 opacity-20 pointer-events-none select-none">{score}</span>
+                                        <div key={ability} className="bg-stone-900/40 border border-stone-800 rounded-xl p-3 flex flex-col items-center justify-between aspect-[4/5] shadow-sm relative overflow-hidden group">
+                                            <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mt-1">{ability}</span>
+                                            <span className="text-3xl font-serif font-bold text-stone-200 z-10">{formatMod(mod)}</span>
+                                            <div className="w-8 h-8 rounded-full bg-stone-900 border border-stone-800 flex items-center justify-center text-xs text-stone-500 font-bold z-10 mb-1">
+                                                {score}
+                                            </div>
+                                            {/* Decorative */}
+                                            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-stone-900/50 pointer-events-none" />
                                         </div>
                                     );
                                 })}
@@ -157,15 +148,17 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack }) =>
 
                             {/* Features */}
                             <div>
-                                <h3 className="text-stone-400 text-xs uppercase font-bold tracking-widest mb-3 flex items-center gap-2"><Sparkles size={14}/> Features & Traits</h3>
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span className="text-xs font-bold text-stone-500 bg-stone-900 border border-stone-800 px-2 py-1 rounded">{character.background}</span>
-                                        {character.originFeat && <span className="text-xs font-bold text-indigo-400 bg-indigo-950/20 border border-indigo-900/50 px-2 py-1 rounded">{character.originFeat}</span>}
+                                <SectionHeader icon={<Sparkles size={16}/>} title="Features & Traits" />
+                                <div className="space-y-3">
+                                    <div className="flex gap-2 mb-4 overflow-x-auto pb-2 no-scrollbar">
+                                        <Badge>{character.background}</Badge>
+                                        <Badge color="indigo">{character.originFeat}</Badge>
+                                        <Badge color="stone">{character.species}</Badge>
                                     </div>
                                     {character.features.map((feat, idx) => (
-                                        <div key={idx} className="bg-stone-900 px-4 py-3 rounded border border-stone-800 shadow-sm">
-                                            <span className="text-stone-200 font-bold text-sm">{feat}</span>
+                                        <div key={idx} className="bg-stone-900/60 px-5 py-4 rounded-xl border border-stone-800/50 flex items-center gap-3">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-amber-700 shrink-0"></div>
+                                            <span className="text-stone-300 font-medium text-sm leading-relaxed">{feat}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -173,9 +166,9 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack }) =>
 
                             {/* Backstory */}
                             <div>
-                                <h3 className="text-stone-400 text-xs uppercase font-bold tracking-widest mb-3 flex items-center gap-2"><Scroll size={14}/> Backstory</h3>
-                                <div className="bg-stone-900 p-4 rounded border border-stone-800">
-                                    <p className="text-stone-400 text-sm leading-relaxed italic">
+                                <SectionHeader icon={<Scroll size={16}/>} title="Backstory" />
+                                <div className="bg-stone-900/30 p-5 rounded-xl border border-stone-800/50 relative">
+                                    <p className="text-stone-400 text-sm leading-7 font-serif italic">
                                         "{character.backstory}"
                                     </p>
                                 </div>
@@ -184,98 +177,106 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack }) =>
                     )}
 
                     {activeTab === 'combat' && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                            <h3 className="text-stone-400 text-xs uppercase font-bold tracking-widest mb-3 flex items-center gap-2">
-                                <Swords size={14}/> Active Weapons
-                            </h3>
-                            <div className="grid gap-3">
+                        <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
+                            <SectionHeader icon={<Swords size={16}/>} title="Active Weapons" />
+                            <div className="grid gap-4">
                                 {character.weapons && character.weapons.length > 0 ? (
                                     character.weapons.map((wpn, idx) => (
-                                        <div key={idx} className="bg-stone-900 border border-stone-800 rounded-lg p-4 shadow-sm relative overflow-hidden group">
-                                            <div className="flex justify-between items-start mb-2 relative z-10">
+                                        <div key={idx} className="bg-stone-900 border border-stone-800 rounded-2xl p-5 shadow-sm relative overflow-hidden">
+                                            <div className="flex justify-between items-start mb-3">
                                                 <div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-white font-bold text-lg">{wpn.name}</span>
-                                                        {wpn.properties.includes('Light') && <span className="text-[10px] font-bold uppercase bg-stone-800 text-stone-400 px-1.5 py-0.5 rounded">Light</span>}
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="text-stone-100 font-bold text-xl font-serif">{wpn.name}</span>
                                                     </div>
-                                                    <span className="text-amber-500 font-mono text-sm font-bold">{wpn.damage} <span className="text-stone-500 font-sans text-xs font-normal">{wpn.type}</span></span>
+                                                    <div className="text-xs font-medium text-stone-500 uppercase tracking-wider">
+                                                        {wpn.type}
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                     <span className="text-2xl font-serif font-bold text-amber-500 block">{wpn.damage}</span>
                                                 </div>
                                             </div>
                                             
-                                            <div className="text-xs text-stone-400 mb-3 relative z-10 border-b border-stone-800 pb-2">
-                                                {wpn.properties.join(', ')}
+                                            <div className="flex flex-wrap gap-1 mb-4">
+                                                {wpn.properties.map(p => (
+                                                    <span key={p} className="text-[10px] bg-stone-950 text-stone-400 px-2 py-1 rounded border border-stone-800">{p}</span>
+                                                ))}
                                             </div>
 
-                                            <div className="bg-stone-950/80 border border-stone-800 p-2 rounded relative z-10">
-                                                <div className="flex items-center gap-1 mb-1">
-                                                    <Zap size={10} className="text-amber-600"/>
-                                                    <span className="text-amber-600 font-bold text-[10px] uppercase tracking-wider">Mastery: {wpn.mastery}</span>
+                                            <div className="bg-stone-950/50 border border-stone-800/50 p-3 rounded-xl flex gap-3">
+                                                <div className="mt-1">
+                                                    <Zap size={14} className="text-amber-600"/>
                                                 </div>
-                                                <p className="text-stone-500 text-[10px] leading-tight">
-                                                    {MASTERY_DESCRIPTIONS[wpn.mastery]}
-                                                </p>
+                                                <div>
+                                                    <span className="text-amber-600 font-bold text-xs uppercase tracking-wider block mb-0.5">{wpn.mastery}</span>
+                                                    <p className="text-stone-500 text-xs leading-relaxed">
+                                                        {MASTERY_DESCRIPTIONS[wpn.mastery]}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
                                     ))
                                 ) : (
-                                    <p className="text-stone-500 italic text-center py-8">No weapons equipped.</p>
+                                    <p className="text-stone-600 italic text-center py-10">No weapons equipped.</p>
                                 )}
                             </div>
                         </div>
                     )}
 
                     {activeTab === 'inventory' && (
-                        <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                            <h3 className="text-stone-400 text-xs uppercase font-bold tracking-widest mb-3 flex items-center gap-2"><Backpack size={14}/> Equipment</h3>
-                            <ul className="grid grid-cols-1 gap-2">
+                        <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
+                            <SectionHeader icon={<Backpack size={16}/>} title="Equipment" />
+                            <div className="bg-stone-900 border border-stone-800 rounded-2xl overflow-hidden">
                                 {character.equipment.map((item, i) => (
-                                    <li key={i} className="text-stone-300 bg-stone-900 px-4 py-3 rounded border border-stone-800 flex items-center justify-between">
-                                        <span>{item}</span>
-                                        <span className="w-2 h-2 rounded-full bg-stone-700"></span>
-                                    </li>
+                                    <div key={i} className="px-5 py-4 border-b border-stone-800 last:border-0 flex items-center justify-between hover:bg-stone-800/50 transition-colors">
+                                        <span className="text-stone-300 font-medium">{item}</span>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-stone-700"></div>
+                                    </div>
                                 ))}
-                            </ul>
-                            <div className="mt-8 p-4 bg-stone-900/50 rounded border border-stone-800 border-dashed text-center">
-                                <span className="text-stone-500 text-sm">Tap + to add items (Coming soon)</span>
                             </div>
+                            <button className="w-full py-4 border border-dashed border-stone-700 text-stone-500 rounded-xl hover:bg-stone-900/50 transition-colors text-sm font-medium">
+                                + Add Item
+                            </button>
                         </div>
                     )}
 
                     {activeTab === 'spells' && (
-                        <div className="h-64 flex flex-col items-center justify-center text-stone-500 animate-in fade-in slide-in-from-right-4 duration-300">
-                            <BookOpen size={48} className="mb-4 opacity-20"/>
-                            <p className="font-serif text-lg text-stone-400">Grimoire</p>
-                            <p className="text-xs text-stone-600 mt-1 max-w-[200px] text-center">Spell management is currently locked by the DM.</p>
+                        <div className="h-[50vh] flex flex-col items-center justify-center text-stone-500 animate-in fade-in slide-in-from-right-8 duration-300">
+                            <BookOpen size={56} strokeWidth={1} className="mb-6 opacity-30 text-stone-400"/>
+                            <p className="font-serif text-2xl text-stone-400 mb-2">Grimoire</p>
+                            <p className="text-sm text-stone-600 max-w-[220px] text-center leading-relaxed">
+                                The weave is quiet. Spell management coming in future updates.
+                            </p>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* --- FOOTER NAVIGATION --- */}
-            <div className="bg-stone-950 border-t border-stone-800 p-2 safe-area-pb z-30 shrink-0">
-                <nav className="flex justify-around items-center">
+            {/* --- FOOTER NAVIGATION (Fixed) --- */}
+            <div className="fixed bottom-0 w-full bg-stone-950/95 backdrop-blur-md border-t border-stone-800 pb-safe pt-2 px-2 z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+                <nav className="flex justify-around items-end h-[70px] pb-2">
                     <NavButton 
                         active={activeTab === 'main'} 
                         onClick={() => setActiveTab('main')} 
-                        icon={<User size={20}/>} 
-                        label="Overview" 
+                        icon={<User size={24}/>} 
+                        label="Hero" 
                     />
                     <NavButton 
                         active={activeTab === 'combat'} 
                         onClick={() => setActiveTab('combat')} 
-                        icon={<Swords size={20}/>} 
+                        icon={<Swords size={24}/>} 
                         label="Combat" 
                     />
                     <NavButton 
                         active={activeTab === 'inventory'} 
                         onClick={() => setActiveTab('inventory')} 
-                        icon={<Backpack size={20}/>} 
+                        icon={<Backpack size={24}/>} 
                         label="Items" 
                     />
                     <NavButton 
                         active={activeTab === 'spells'} 
                         onClick={() => setActiveTab('spells')} 
-                        icon={<BookOpen size={20}/>} 
+                        icon={<BookOpen size={24}/>} 
                         label="Spells" 
                     />
                 </nav>
@@ -283,42 +284,38 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack }) =>
 
             {/* --- AI MODAL OVERLAY --- */}
             {showAiModal && (
-                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
-                    {/* Backdrop */}
+                <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4">
                     <div 
-                        className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+                        className="absolute inset-0 bg-stone-950/80 backdrop-blur-sm animate-in fade-in duration-300"
                         onClick={() => setShowAiModal(false)}
                     />
                     
-                    {/* Modal Content */}
-                    <div className="bg-stone-900 w-full sm:max-w-lg h-[85vh] sm:h-[600px] sm:rounded-xl rounded-t-2xl flex flex-col relative z-10 animate-in slide-in-from-bottom-10 duration-300 shadow-2xl border border-stone-800">
-                        {/* Modal Header */}
-                        <div className="flex items-center justify-between p-4 border-b border-stone-800 bg-stone-900 rounded-t-xl">
-                            <div className="flex items-center gap-2">
-                                <BotMessageSquare className="text-indigo-500" />
-                                <h3 className="font-bold text-white">DM Assistant AI</h3>
+                    <div className="bg-stone-900 w-full sm:max-w-lg h-[80vh] sm:h-[600px] sm:rounded-2xl rounded-t-3xl flex flex-col relative z-10 animate-in slide-in-from-bottom-10 duration-300 shadow-2xl border border-stone-800">
+                        <div className="flex items-center justify-between p-5 border-b border-stone-800">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-indigo-500/10 rounded-lg">
+                                    <BotMessageSquare className="text-indigo-400" size={24}/>
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-stone-100 text-lg">DM Assistant</h3>
+                                    <p className="text-xs text-indigo-400">Powered by Gemini</p>
+                                </div>
                             </div>
                             <button 
                                 onClick={() => setShowAiModal(false)}
-                                className="text-stone-500 hover:text-white p-1 rounded-full bg-stone-800"
+                                className="w-8 h-8 flex items-center justify-center text-stone-500 hover:text-white rounded-full bg-stone-800"
                             >
-                                <X size={20} />
+                                <X size={18} />
                             </button>
                         </div>
 
-                        {/* Modal Body */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 text-stone-300 bg-stone-950/30">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 text-stone-300 bg-stone-950/30">
                             {!aiResponse && !isAskingAi && (
-                                <div className="flex flex-col items-center justify-center h-full text-stone-600 text-center space-y-4">
-                                    <BotMessageSquare size={48} className="opacity-20"/>
+                                <div className="flex flex-col items-center justify-center h-full text-stone-600 text-center space-y-6">
+                                    <BotMessageSquare size={64} strokeWidth={1.5} className="opacity-20"/>
                                     <div>
-                                        <p className="text-sm font-bold text-stone-500">I know the 2024 Rules.</p>
-                                        <p className="text-xs mt-1">Ask about conditions, spells, or mechanics.</p>
-                                    </div>
-                                    <div className="flex flex-wrap justify-center gap-2">
-                                        <span className="text-[10px] border border-stone-800 rounded px-2 py-1">What is the Vex mastery?</span>
-                                        <span className="text-[10px] border border-stone-800 rounded px-2 py-1">Grappled condition rules</span>
-                                        <span className="text-[10px] border border-stone-800 rounded px-2 py-1">How does Exhaustion work?</span>
+                                        <p className="text-base font-bold text-stone-400 mb-2">Rules Reference</p>
+                                        <p className="text-sm leading-relaxed max-w-xs mx-auto">Ask about the 2024 Player's Handbook updates, conditions, or spell mechanics.</p>
                                     </div>
                                 </div>
                             )}
@@ -329,31 +326,30 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack }) =>
                                 </div>
                             )}
                             {aiResponse && (
-                                <div className="bg-stone-800/50 p-4 rounded-lg border border-stone-700">
-                                    <div className="prose prose-invert prose-stone prose-sm max-w-none">
-                                        <p className="whitespace-pre-wrap leading-relaxed">{aiResponse}</p>
+                                <div className="bg-stone-800/80 p-5 rounded-xl border border-stone-700 shadow-lg">
+                                    <div className="prose prose-invert prose-stone max-w-none leading-relaxed">
+                                        <p className="whitespace-pre-wrap">{aiResponse}</p>
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        {/* Modal Footer (Input) */}
-                        <div className="p-4 bg-stone-900 border-t border-stone-800">
-                             <form onSubmit={handleAskRule} className="flex gap-2">
+                        <div className="p-4 bg-stone-900 border-t border-stone-800 pb-8">
+                             <form onSubmit={handleAskRule} className="flex gap-3">
                                 <input 
                                     ref={aiInputRef}
                                     type="text" 
                                     value={ruleQuery}
                                     onChange={(e) => setRuleQuery(e.target.value)}
-                                    className="flex-1 bg-stone-950 border border-stone-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 placeholder-stone-600"
-                                    placeholder="Ask a rules question..."
+                                    className="flex-1 bg-stone-950 border border-stone-800 rounded-xl px-5 py-4 text-stone-100 text-base focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 placeholder-stone-600"
+                                    placeholder="Ask a question..."
                                 />
                                 <button 
                                     type="submit" 
                                     disabled={!ruleQuery.trim() || isAskingAi}
-                                    className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg px-4 py-2 font-bold transition-colors shadow-lg shadow-indigo-900/20"
+                                    className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl px-5 font-bold transition-all shadow-lg shadow-indigo-900/20 active:scale-95"
                                 >
-                                    Ask
+                                    <ArrowLeft size={24} className="rotate-180"/>
                                 </button>
                             </form>
                         </div>
@@ -365,16 +361,48 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack }) =>
     );
 };
 
-// Helper component for Footer Buttons
+// --- Subcomponents for clearer structure ---
+
+const VitalStat: React.FC<{ label: string; value: string | number; icon: React.ReactNode }> = ({ label, value, icon }) => (
+    <div className="flex flex-col items-center gap-1 w-14">
+        <span className="text-[10px] text-stone-500 font-bold tracking-widest">{label}</span>
+        <div className="flex items-center gap-1.5">
+            {icon}
+            <span className="text-xl font-serif font-bold text-stone-200">{value}</span>
+        </div>
+    </div>
+);
+
+const SectionHeader: React.FC<{ icon: React.ReactNode; title: string }> = ({ icon, title }) => (
+    <h3 className="text-stone-400 text-xs uppercase font-bold tracking-[0.2em] mb-4 flex items-center gap-2 pl-1">
+        {icon} {title}
+    </h3>
+);
+
+const Badge: React.FC<{ children: React.ReactNode; color?: 'stone' | 'indigo' }> = ({ children, color = 'stone' }) => {
+    if (!children) return null;
+    const styles = color === 'indigo' 
+        ? "text-indigo-300 bg-indigo-950/40 border-indigo-900/50" 
+        : "text-stone-400 bg-stone-900 border-stone-800";
+    
+    return (
+        <span className={`text-xs font-bold px-3 py-1.5 rounded-lg border whitespace-nowrap ${styles}`}>
+            {children}
+        </span>
+    );
+};
+
 const NavButton: React.FC<{ active: boolean; onClick: () => void; icon: React.ReactNode; label: string }> = ({ active, onClick, icon, label }) => (
     <button 
         onClick={onClick}
-        className={`flex flex-col items-center justify-center gap-1 p-2 rounded-lg transition-all w-20 ${active ? 'text-amber-500 bg-stone-900' : 'text-stone-500 hover:text-stone-300'}`}
+        className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-2xl transition-all w-20 group relative`}
     >
-        <div className={`transition-transform duration-200 ${active ? 'scale-110' : ''}`}>
+        <div className={`transition-all duration-300 p-1.5 rounded-xl ${active ? 'text-amber-500 -translate-y-2 bg-stone-900 border border-stone-800 shadow-lg' : 'text-stone-500 group-hover:text-stone-300'}`}>
             {icon}
         </div>
-        <span className={`text-[10px] font-bold ${active ? 'opacity-100' : 'opacity-70'}`}>{label}</span>
+        <span className={`text-[10px] font-bold tracking-wide transition-all duration-300 ${active ? 'text-amber-500 -translate-y-1 opacity-100' : 'text-stone-600 opacity-0 h-0 overflow-hidden'}`}>
+            {label}
+        </span>
     </button>
 );
 
