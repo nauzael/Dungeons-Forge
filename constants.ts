@@ -208,11 +208,19 @@ export const BACKGROUNDS_DATA: Record<string, BackgroundData> = {
         skills: ['Acrobatics', 'Perception'],
         equipment: ['Rope (50ft)', 'Navigator\'s Tools']
     },
+    'Scribe': { 
+        description: 'You spent formative years in a scriptorium or library.', 
+        scores: ['DEX', 'INT', 'WIS'], 
+        feat: 'Skilled', 
+        featDescription: 'Gain proficiency in 3 Skills or Tools.',
+        skills: ['Investigation', 'Perception'],
+        equipment: ['Calligrapher\'s Supplies', 'Fine Clothes', 'Lamp', 'Parchment (12 sheets)']
+    },
     'Soldier': { 
         description: 'You were trained for war.', 
         scores: ['STR', 'DEX', 'CON'], 
         feat: 'Savage Attacker', 
-        featDescription: 'Advantage on damage rolls with weapons.',
+        featDescription: 'Advantage on weapon damage rolls.',
         skills: ['Athletics', 'Intimidation'],
         equipment: ['Gaming Set', 'Healer\'s Kit']
     },
@@ -228,32 +236,135 @@ export const BACKGROUNDS_DATA: Record<string, BackgroundData> = {
 
 export const CLASS_FEATURES: Record<string, string[]> = {
     'Barbarian': ['Rage', 'Unarmored Defense', 'Weapon Mastery'],
-    'Bard': ['Bardic Inspiration', 'Spellcasting', 'Bardic Versatility'],
+    'Bard': ['Bardic Inspiration', 'Spellcasting'],
     'Cleric': ['Spellcasting', 'Divine Order'],
-    'Druid': ['Druidic', 'Primal Order', 'Wild Shape'],
+    'Druid': ['Spellcasting', 'Druidic', 'Primal Order'],
     'Fighter': ['Fighting Style', 'Second Wind', 'Weapon Mastery'],
-    'Monk': ['Martial Arts', 'Unarmored Defense', 'Focus Points'],
-    'Paladin': ['Lay on Hands', 'Spellcasting', 'Weapon Mastery'],
-    'Ranger': ['Favored Enemy', 'Spellcasting', 'Weapon Mastery'],
-    'Rogue': ['Expertise', 'Sneak Attack', 'Weapon Mastery', 'Thieves\' Cant'],
-    'Sorcerer': ['Innate Sorcery', 'Spellcasting'],
-    'Warlock': ['Pact Magic', 'Eldritch Invocations', 'Pact Boon'],
+    'Monk': ['Martial Arts', 'Unarmored Defense'],
+    'Paladin': ['Lay On Hands', 'Spellcasting', 'Weapon Mastery'],
+    'Ranger': ['Spellcasting', 'Favored Enemy', 'Weapon Mastery'],
+    'Rogue': ['Expertise', 'Sneak Attack', 'Thieves\' Cant', 'Weapon Mastery'],
+    'Sorcerer': ['Spellcasting', 'Innate Sorcery'],
+    'Warlock': ['Eldritch Invocations', 'Pact Magic'],
     'Wizard': ['Spellcasting', 'Ritual Adept', 'Arcane Recovery']
 };
 
 export const CLASS_PROGRESSION: Record<string, Record<number, string[]>> = {
-    'Fighter': { 2: ['Action Surge', 'Tactical Mind'], 5: ['Extra Attack'], 9: ['Indomitable'] },
-    'Rogue': { 2: ['Cunning Action'], 5: ['Uncanny Dodge'], 7: ['Evasion'] },
-    'Barbarian': { 2: ['Reckless Attack', 'Danger Sense'], 5: ['Extra Attack', 'Fast Movement'] },
-    'Monk': { 2: ['Uncanny Metabolism', 'Deflect Attacks'], 5: ['Extra Attack', 'Stunning Strike'] },
-    'Paladin': { 2: ['Divine Smite', 'Fighting Style'], 5: ['Extra Attack'] },
-    'Ranger': { 2: ['Fighting Style'], 5: ['Extra Attack'] },
-    'Sorcerer': { 2: ['Font of Magic', 'Metamagic'] },
-    'Warlock': { 2: ['Eldritch Invocations'] },
-    'Wizard': { 2: ['Scholar'] },
-    'Druid': { 2: ['Wild Shape', 'Wild Companion'] },
-    'Cleric': { 2: ['Channel Divinity'] },
-    'Bard': { 2: ['Jack of All Trades'] }
+    'Barbarian': { 
+        2: ['Reckless Attack', 'Danger Sense'], 
+        3: ['Primal Knowledge'],
+        5: ['Extra Attack', 'Fast Movement'], 
+        7: ['Feral Instinct', 'Instinctive Pounce'],
+        9: ['Brutal Strike'],
+        11: ['Relentless Rage'],
+        13: ['Improved Brutal Strike'],
+        15: ['Persistent Rage'],
+        18: ['Indomitable Might'],
+        20: ['Primal Champion']
+    },
+    'Bard': { 
+        2: ['Expertise', 'Jack of All Trades'], 
+        5: ['Font of Inspiration'],
+        7: ['Countercharm'],
+        10: ['Magical Secrets'],
+        18: ['Superior Inspiration'],
+        20: ['Words of Creation']
+    },
+    'Cleric': { 
+        2: ['Channel Divinity'],
+        5: ['Sear Undead'],
+        7: ['Blessed Strikes'],
+        10: ['Divine Intervention'],
+        14: ['Improved Blessed Strikes'],
+        20: ['Greater Divine Intervention']
+    },
+    'Druid': { 
+        2: ['Wild Shape', 'Wild Companion'],
+        5: ['Wild Resurgence'],
+        7: ['Elemental Fury'],
+        15: ['Improved Elemental Fury'],
+        18: ['Beast Spells'],
+        20: ['Archdruid']
+    },
+    'Fighter': { 
+        2: ['Action Surge', 'Tactical Mind'], 
+        5: ['Extra Attack', 'Tactical Shift'], 
+        9: ['Indomitable', 'Tactical Master'],
+        11: ['Two Extra Attacks'],
+        13: ['Studied Attacks'],
+        17: ['Action Surge (two uses)', 'Indomitable (three uses)'],
+        20: ['Three Extra Attacks']
+    },
+    'Monk': { 
+        2: ['Monk\'s Focus', 'Unarmored Movement', 'Uncanny Metabolism'], 
+        3: ['Deflect Attacks'],
+        4: ['Slow Fall'],
+        5: ['Extra Attack', 'Stunning Strike'],
+        6: ['Empowered Strikes'],
+        7: ['Evasion'],
+        9: ['Acrobatic Movement'],
+        10: ['Heightened Focus', 'Self-Restoration'],
+        13: ['Deflect Energy'],
+        14: ['Disciplined Survivor'],
+        15: ['Perfect Focus'],
+        18: ['Superior Defense'],
+        20: ['Body and Mind']
+    },
+    'Paladin': { 
+        2: ['Fighting Style', 'Paladin\'s Smite'], 
+        5: ['Extra Attack', 'Faithful Steed'],
+        6: ['Aura of Protection'],
+        9: ['Abjure Foes'],
+        10: ['Aura of Courage'],
+        11: ['Radiant Strikes'],
+        14: ['Restoring Touch'],
+        18: ['Aura Expansion']
+    },
+    'Ranger': { 
+        2: ['Deft Explorer', 'Fighting Style'], 
+        5: ['Extra Attack'],
+        6: ['Roving'],
+        9: ['Expertise'],
+        10: ['Tireless'],
+        13: ['Relentless Hunter'],
+        14: ['Nature\'s Veil'],
+        17: ['Precise Hunter'],
+        18: ['Feral Senses'],
+        20: ['Foe Slayer']
+    },
+    'Rogue': { 
+        2: ['Cunning Action'], 
+        3: ['Steady Aim'],
+        5: ['Cunning Strike', 'Uncanny Dodge'], 
+        6: ['Expertise'],
+        7: ['Evasion', 'Reliable Talent'],
+        11: ['Improved Cunning Strike'],
+        14: ['Devious Strikes'],
+        15: ['Slippery Mind'],
+        18: ['Elusive'],
+        20: ['Stroke of Luck']
+    },
+    'Sorcerer': { 
+        2: ['Font of Magic', 'Metamagic'],
+        5: ['Sorcerous Restoration'],
+        7: ['Sorcery Incarnate'],
+        20: ['Arcane Apotheosis']
+    },
+    'Warlock': { 
+        2: ['Magical Cunning'],
+        9: ['Contact Patron'],
+        11: ['Mystic Arcanum (level 6)'],
+        13: ['Mystic Arcanum (level 7)'],
+        15: ['Mystic Arcanum (level 8)'],
+        17: ['Mystic Arcanum (level 9)'],
+        20: ['Eldritch Master']
+    },
+    'Wizard': { 
+        2: ['Scholar'],
+        5: ['Memorize Spell'],
+        18: ['Spell Mastery'],
+        20: ['Signature Spells']
+    }
 };
 
 export interface Trait {
@@ -291,7 +402,7 @@ export const SPECIES_DETAILS: Record<string, DetailData> = {
       { name: 'Darkvision', description: 'See in dim light within 60ft as bright light, and darkness as dim light.' },
       { name: 'Fey Ancestry', description: 'Advantage on saves vs Charmed condition. Magic cannot put you to sleep.' },
       { name: 'Keen Senses', description: 'Proficiency in the Insight, Perception, or Survival skill.' },
-      { name: 'Innate Spellcasting', description: 'Choose a lineage (Drow, High, or Wood) to gain cantrips and spells like Misty Step or Detect Magic.' },
+      { name: 'Elven Lineage', description: 'Choose Drow (120ft Darkvision, Dancing Lights), High Elf (Prestidigitation, swap on rest), or Wood Elf (Speed 35, Druidcraft).' },
       { name: 'Trance', description: 'You don\'t sleep. You meditate for 4 hours to gain the benefits of a Long Rest.' }
     ] 
   },
@@ -304,7 +415,7 @@ export const SPECIES_DETAILS: Record<string, DetailData> = {
       { name: 'Darkvision', description: '120ft Darkvision range.' },
       { name: 'Dwarven Resilience', description: 'Resistance to Poison damage and Advantage on saves vs Poisoned condition.' },
       { name: 'Dwarven Toughness', description: 'Hit Point maximum increases by 1, and increases by 1 every time you gain a level.' },
-      { name: 'Stonecunning', description: 'Gain Tremorsense (range 60ft) on stone surfaces for 10 minutes as a Bonus Action.' }
+      { name: 'Stonecunning', description: 'Bonus Action to gain Tremorsense (range 60ft) on stone surfaces for 10 minutes.' }
     ] 
   },
   'Halfling': { 
@@ -316,7 +427,7 @@ export const SPECIES_DETAILS: Record<string, DetailData> = {
       { name: 'Brave', description: 'Advantage on saves vs the Frightened condition.' },
       { name: 'Halfling Nimbleness', description: 'You can move through the space of any creature that is a size larger than yours.' },
       { name: 'Luck', description: 'When you roll a 1 on a d20 for an attack, check, or save, you can reroll it (must use new roll).' },
-      { name: 'Naturally Stealthy', description: 'Proficiency in the Stealth skill.' }
+      { name: 'Naturally Stealthy', description: 'You can take the Hide action even when you are obscured only by a creature that is at least one size larger than you.' }
     ] 
   },
   'Dragonborn': { 
@@ -326,9 +437,9 @@ export const SPECIES_DETAILS: Record<string, DetailData> = {
     speed: 30,
     traits: [
       { name: 'Breath Weapon', description: 'Exhale energy (Line or Cone) dealing 1d10 damage (scales with level). Replaces an attack.' },
-      { name: 'Damage Resistance', description: 'Resistance to the damage type associated with your ancestry.' },
+      { name: 'Damage Resistance', description: 'Resistance to the damage type associated with your ancestry (Acid, Fire, Lightning, Poison, or Cold).' },
       { name: 'Darkvision', description: 'See in dim light within 60ft as bright light.' },
-      { name: 'Draconic Flight', description: 'At 5th level, you can sprout wings to fly for 10 minutes.' }
+      { name: 'Draconic Flight', description: 'At 5th level, you can sprout spectral wings to fly for 10 minutes (Fly Speed = Speed).' }
     ] 
   },
   'Gnome': { 
@@ -339,7 +450,7 @@ export const SPECIES_DETAILS: Record<string, DetailData> = {
     traits: [
       { name: 'Darkvision', description: 'See in dim light within 60ft as bright light.' },
       { name: 'Gnomish Cunning', description: 'Advantage on Intelligence, Wisdom, and Charisma saves.' },
-      { name: 'Gnomish Lineage', description: 'Choose Forest (Speak with Animals) or Rock (Mending, Prestidigitation) magic.' }
+      { name: 'Gnomish Lineage', description: 'Choose Forest (Know Minor Illusion, Speak with Animals) or Rock (Know Mending/Prestidigitation, create tiny clockwork devices).' }
     ] 
   },
   'Orc': { 
@@ -351,7 +462,6 @@ export const SPECIES_DETAILS: Record<string, DetailData> = {
       { name: 'Adrenaline Rush', description: 'Dash as a Bonus Action. When you do, gain Temp HP equal to proficiency bonus.' },
       { name: 'Darkvision', description: '120ft Darkvision.' },
       { name: 'Relentless Endurance', description: 'When reduced to 0 HP, drop to 1 HP instead (once per Long Rest).' },
-      { name: 'Powerful Build', description: 'Count as one size larger when carrying, pushing, dragging, or lifting.' }
     ] 
   },
   'Tiefling': { 
@@ -361,7 +471,7 @@ export const SPECIES_DETAILS: Record<string, DetailData> = {
     speed: 30,
     traits: [
       { name: 'Darkvision', description: 'See in dim light within 60ft as bright light.' },
-      { name: 'Otherworldly Legacy', description: 'Choose Abyssal (Poison/Hold Person), Chthonic (Necrotic/False Life), or Infernal (Fire/Hellish Rebuke) lineage.' },
+      { name: 'Fiendish Legacy', description: 'Choose Abyssal (Poison res, Poison Spray), Chthonic (Necrotic res, Chill Touch), or Infernal (Fire res, Fire Bolt).' },
       { name: 'Otherworldly Presence', description: 'You know the Thaumaturgy cantrip.' }
     ] 
   },
@@ -373,7 +483,7 @@ export const SPECIES_DETAILS: Record<string, DetailData> = {
     traits: [
       { name: 'Celestial Resistance', description: 'Resistance to Necrotic and Radiant damage.' },
       { name: 'Darkvision', description: 'See in dim light within 60ft as bright light.' },
-      { name: 'Healing Hands', description: 'Magic Action to heal a creature. No spell slots required.' },
+      { name: 'Healing Hands', description: 'Magic Action to heal a creature (roll d4s equal to PB). No spell slots required.' },
       { name: 'Light Bearer', description: 'You know the Light cantrip.' },
       { name: 'Celestial Revelation', description: 'At 3rd level, transform to deal extra damage and fly or radiate light.' }
     ] 
@@ -384,10 +494,9 @@ export const SPECIES_DETAILS: Record<string, DetailData> = {
     size: 'Medium',
     speed: 35,
     traits: [
-      { name: 'Giant Ancestry', description: 'Choose an ancestry (e.g., Cloud for teleport, Fire for damage, Stone for reaction defense).' },
-      { name: 'Large Form', description: 'Starting at 5th level, you can grow to Large size as a Bonus Action.' },
+      { name: 'Giant Ancestry', description: 'Choose one: Cloud (Teleport), Fire (Fire Dmg), Frost (Cold Dmg/Slow), Hill (Topple), Stone (Reaction Reduce Dmg), Storm (Reaction Thunder Dmg).' },
+      { name: 'Large Form', description: 'Starting at 5th level, you can grow to Large size as a Bonus Action for 10 minutes.' },
       { name: 'Powerful Build', description: 'Advantage on checks to end the Grappled condition. Lift as one size larger.' },
-      { name: 'Speed', description: 'Your speed is 35 feet.' }
     ] 
   }
 };
@@ -397,7 +506,7 @@ export const CLASS_DETAILS: Record<string, DetailData> = {
     name: 'Barbarian',
     description: 'A fierce warrior who can enter a battle rage.',
     traits: [
-      { name: 'Rage', description: 'Bonus Action to enter. Adv on STR checks/saves, Resistance to B/P/S damage, +Rage Damage.' },
+      { name: 'Rage', description: 'Bonus Action to enter. Adv on STR checks/saves, Resistance to B/P/S damage, +Rage Damage to STR attacks.' },
       { name: 'Unarmored Defense', description: 'AC equals 10 + DEX mod + CON mod when not wearing armor.' },
       { name: 'Weapon Mastery', description: 'Unlock special properties (Cleave, Topple) on your chosen weapons.' }
     ]
@@ -407,8 +516,7 @@ export const CLASS_DETAILS: Record<string, DetailData> = {
     description: 'An inspiring magician whose power echoes the music of creation.',
     traits: [
       { name: 'Bardic Inspiration', description: 'Bonus Action to give a die (d6) to an ally to boost d20 rolls.' },
-      { name: 'Spellcasting', description: 'Cast spells from the Arcane list. Charisma is your casting ability.' },
-      { name: 'Bardic Versatility', description: 'Choose a Skill or Tool proficiency to swap on Long Rests.' }
+      { name: 'Spellcasting', description: 'Cast spells from the Arcane list. Charisma is your casting ability.' }
     ]
   },
   'Cleric': {
@@ -423,9 +531,9 @@ export const CLASS_DETAILS: Record<string, DetailData> = {
     name: 'Druid',
     description: 'A priest of the Old Faith, wielding the powers of nature.',
     traits: [
+      { name: 'Spellcasting', description: 'Prepare Primal spells. Wisdom is your casting ability.' },
       { name: 'Druidic', description: 'You know the secret language of Druids.' },
-      { name: 'Primal Order', description: 'Choose Magician (Extra Cantrip + Arcana/Nature) or Warden (Medium Armor + Martial Weapons).' },
-      { name: 'Wild Shape', description: 'Transform into a beast or form of nature (now a Bonus Action).' }
+      { name: 'Primal Order', description: 'Choose Magician (Extra Cantrip + Arcana/Nature) or Warden (Medium Armor + Martial Weapons).' }
     ]
   },
   'Fighter': {
@@ -442,8 +550,7 @@ export const CLASS_DETAILS: Record<string, DetailData> = {
     description: 'A master of martial arts, harnessing body and spirit.',
     traits: [
       { name: 'Martial Arts', description: 'Use DEX instead of STR for Monk weapons/unarmed. Bonus Action unarmed strike.' },
-      { name: 'Unarmored Defense', description: 'AC equals 10 + DEX mod + WIS mod.' },
-      { name: 'Focus Points', description: 'Fuel special abilities like Flurry of Blows, Patient Defense, and Step of the Wind.' }
+      { name: 'Unarmored Defense', description: 'AC equals 10 + DEX mod + WIS mod.' }
     ]
   },
   'Paladin': {
@@ -459,8 +566,8 @@ export const CLASS_DETAILS: Record<string, DetailData> = {
     name: 'Ranger',
     description: 'A warrior who combats threats on the edges of civilization.',
     traits: [
-      { name: 'Favored Enemy', description: 'You always have Hunter\'s Mark prepared. Cast it without a slot (limited use).' },
       { name: 'Spellcasting', description: 'Prepare Primal spells. Wisdom is your casting ability.' },
+      { name: 'Favored Enemy', description: 'You always have Hunter\'s Mark prepared. Cast it without a slot (limited use).' },
       { name: 'Weapon Mastery', description: 'Master 2 weapons to use their tactical properties.' }
     ]
   },
@@ -478,18 +585,16 @@ export const CLASS_DETAILS: Record<string, DetailData> = {
     name: 'Sorcerer',
     description: 'A spellcaster who draws on inherent magic.',
     traits: [
-      { name: 'Innate Sorcery', description: 'Bonus Action to activate a rage-like state increasing spell DC and attack advantage.' },
       { name: 'Spellcasting', description: 'Cast Arcane spells spontaneously. Charisma is your casting ability.' },
-      { name: 'Font of Magic', description: 'Gain Sorcery Points (at level 2) to fuel Metamagic.' }
+      { name: 'Innate Sorcery', description: 'Bonus Action to activate a rage-like state increasing spell DC and attack advantage.' }
     ]
   },
   'Warlock': {
     name: 'Warlock',
     description: 'A wielder of magic derived from a pact.',
     traits: [
-      { name: 'Pact Magic', description: 'Spell slots are always max level and recharge on a Short Rest.' },
       { name: 'Eldritch Invocations', description: 'Customize your powers with unique magical fragments.' },
-      { name: 'Pact Boon', description: 'Choose Blade, Chain, or Tome at level 1.' }
+      { name: 'Pact Magic', description: 'Spell slots are always max level and recharge on a Short Rest.' }
     ]
   },
   'Wizard': {
@@ -522,14 +627,49 @@ export const GENERIC_FEATURES: Record<string, string> = {
   'Sorcerous Restoration': 'You regain Sorcery Points whenever you finish a Short Rest or Long Rest.',
   'Eldritch Invocation': 'In your study of occult lore, you have unearthed Eldritch Invocations, fragments of forbidden knowledge that imbue you with an abiding magical ability.',
   'Arcane Recovery': 'Once per day when you finish a Short Rest, you can choose expended spell slots to recover.',
-  'Tactical Mind': 'You have a mind for tactics on and off the battlefield. When you fail an ability check, you can expend a use of Second Wind to add 1d10 to the roll.',
-  'Ability Score Improvement': 'You can increase one Ability Score by 2, or two Ability Scores by 1. Alternatively, you can take a Feat.'
+  'Tactical Mind': 'When you fail an ability check, you can expend a use of Second Wind to add 1d10 to the roll.',
+  'Ability Score Improvement': 'You can increase one Ability Score by 2, or two Ability Scores by 1. Alternatively, you can take a Feat.',
+  'Tactical Shift': 'Whenever you activate your Second Wind with a Bonus Action, you can move up to half your Speed without provoking Opportunity Attacks.',
+  'Primal Knowledge': 'Gain proficiency in another skill. While Raging, use Strength for Acrobatics, Intimidation, Perception, Stealth, or Survival checks.',
+  'Instinctive Pounce': 'As part of the Bonus Action to enter Rage, you can move up to half your Speed.',
+  'Magical Cunning': 'Perform a 1-minute rite to regain expended Pact Magic spell slots (up to half max). Once per Long Rest.',
+  'Memorize Spell': 'Whenever you finish a Short Rest, you can study your spellbook and replace one prepared level 1+ spell.',
+  'Scholar': 'You have Expertise in one of the following skills: Arcana, History, Investigation, Medicine, Nature, or Religion.',
+  'Metamagic': 'You gain the ability to twist your spells to suit your needs.',
+  'Font of Magic': 'You can tap into the wellspring of magic within yourself, represented by Sorcery Points.',
+  'Innate Sorcery': 'Bonus Action to increase spell Save DC by 1 and gain Advantage on Sorcerer spell attacks for 1 minute.',
+  'Cunning Strike': 'Trade Sneak Attack damage dice for special effects like Poison (1d6), Trip (1d6), or Withdraw (1d6).',
+  'Steady Aim': 'Bonus Action to give yourself Advantage on next attack roll. Speed becomes 0.',
+  'Roving': 'Speed increases by 10 ft. Gain Climb and Swim speeds equal to Speed.',
+  'Tireless': 'Action to gain Temp HP. Reduce Exhaustion on Short Rest.',
+  'Nature\'s Veil': 'Bonus Action to become Invisible until the end of your next turn.',
+  'Paladin\'s Smite': 'You always have Divine Smite prepared. Cast it once without a spell slot per Long Rest.',
+  'Faithful Steed': 'You always have Find Steed prepared. Cast it once without a spell slot per Long Rest.',
+  'Abjure Foes': 'Channel Divinity to Frighten foes and restrict their actions.',
+  'Monk\'s Focus': 'You have a pool of Focus Points to fuel your monk features.',
+  'Deflect Attacks': 'Reaction to reduce damage from melee or ranged attacks. Spend Focus to redirect.',
+  'Divine Order': 'Choose Protector (Heavy Armor/Martial Weapons) or Thaumaturge (Extra Cantrip/Skill Bonus).',
+  'Sear Undead': 'Turn Undead deals Radiant damage.',
+  'Blessed Strikes': 'Choose Divine Strike (extra damage) or Potent Spellcasting (cantrip damage).',
+  'Divine Intervention': 'As a Magic Action, cast any Cleric spell of level 5 or lower without a slot.',
+  'Magical Secrets': 'Choose prepared spells from the Cleric, Druid, or Wizard spell lists.',
+  'Words of Creation': 'You always have Power Word Heal and Power Word Kill prepared.',
+  'Primal Order': 'Choose Magician (Extra Cantrip/Skill Bonus) or Warden (Medium Armor/Martial Weapons).',
+  'Elemental Fury': 'Choose Potent Spellcasting (cantrip damage) or Primal Strike (weapon elemental damage).',
+  'Tactical Master': 'When you attack with a weapon whose mastery property you can use, you can replace that property with Push, Sap, or Slow.',
+  'Studied Attacks': 'If you make an attack roll against a creature and miss, you have Advantage on your next attack roll against that creature.',
+  'Brutal Strike': 'If you use Reckless Attack, you can forgo Advantage to deal extra 1d10 damage and apply an effect like Forceful Blow or Hamstring Blow.',
+  'Relentless Hunter': 'Taking damage can\'t break your Concentration on Hunter\'s Mark.',
+  'Deflect Energy': 'You can now use Deflect Attacks against attacks that deal any damage type, not just B/P/S.',
+  'Contact Patron': 'You always have Contact Other Plane prepared and can cast it without a slot once per Long Rest (success guaranteed).',
+  'Mystic Arcanum': 'Choose a high-level spell (6th, 7th, 8th, or 9th) to cast once per Long Rest without a slot.',
+  'Eldritch Master': 'When you use Magical Cunning, you regain all expended Pact Magic spell slots.'
 };
 
 export interface SubclassData {
   name: string;
   description: string;
-  features: Record<number, Trait[]>; // Maps Level -> Traits gained
+  features: Record<number, Trait[]>;
 }
 
 export const SUBCLASS_OPTIONS: Record<string, SubclassData[]> = {
@@ -643,7 +783,7 @@ export const SUBCLASS_OPTIONS: Record<string, SubclassData[]> = {
     { name: 'Psi Warrior', description: 'Augment your strikes with psionic power.', features: { 3: [{ name: 'Psionic Power', description: 'Use dice to reduce damage, strike harder, or move objects.' }] } },
   ],
   'Monk': [
-    { name: 'Warrior of Mercy', description: 'Manipulate life force to heal or harm.', features: { 3: [{ name: 'Hand of Harm/Healing', description: 'Spend Focus to deal necrotic damage or heal with unarmed strikes.' }] } },
+    { name: 'Warrior of Mercy', description: 'Manipulate life force to heal or harm.', features: { 3: [{ name: 'Hand of Harm', description: 'Deal extra Necrotic damage.' }, { name: 'Hand of Healing', description: 'Heal creature with Focus Point.' }] } },
     { 
         name: 'Warrior of Shadow', 
         description: 'Master stealth and shadow magic.',
@@ -679,7 +819,7 @@ export const SUBCLASS_OPTIONS: Record<string, SubclassData[]> = {
     { name: 'Wild Magic Sorcery', description: 'Channel the chaotic forces of the multiverse.', features: { 3: [{ name: 'Wild Magic Surge', description: 'Chance to trigger random magical effects when casting.' }, { name: 'Tides of Chaos', description: 'Gain Advantage on one roll.' }] } },
   ],
   'Warlock': [
-    { name: 'Archfey Patron', description: 'A pact with a lord or lady of the Feywild.', features: { 3: [{ name: 'Misty Escape', description: 'Turn invisible and teleport when you take damage.' }] } }, // Note: 2024 standardized subclasses to 3
+    { name: 'Archfey Patron', description: 'A pact with a lord or lady of the Feywild.', features: { 3: [{ name: 'Steps of the Fey', description: 'Misty Step uses. Teleport effects.' }] } },
     { name: 'Celestial Patron', description: 'A pact with a being of the Upper Planes.', features: { 3: [{ name: 'Healing Light', description: 'Pool of d6s to heal as Bonus Action.' }] } },
     { name: 'Fiend Patron', description: 'A pact with a devil from the Lower Planes.', features: { 3: [{ name: 'Dark One\'s Blessing', description: 'Gain Temp HP when you reduce a hostile creature to 0 HP.' }] } },
     { name: 'Great Old One Patron', description: 'A pact with an eldritch entity.', features: { 3: [{ name: 'Awakened Mind', description: 'Telepathic communication.' }] } },
@@ -692,69 +832,20 @@ export const SUBCLASS_OPTIONS: Record<string, SubclassData[]> = {
   ]
 };
 
-export const FEAT_OPTIONS: Trait[] = [
-  { name: 'Ability Score Improvement', description: 'Increase one Ability Score by 2, or two Ability Scores by 1.' },
-  { name: 'Alert', description: 'Proficiency in Initiative. Swap initiative with ally.' },
-  { name: 'Charger', description: 'Dash allows an attack or push as a bonus action.' },
-  { name: 'Chef', description: 'Constitution/Wisdom +1. Prepare special food for recovery.' },
-  { name: 'Crossbow Expert', description: 'Ignore Loading property. Fire in melee without disadvantage.' },
-  { name: 'Defensive Duelist', description: 'Use reaction to add PB to AC against melee attack.' },
-  { name: 'Dual Wielder', description: 'Use two-weapon fighting with non-Light weapons.' },
-  { name: 'Durable', description: 'Constitution +1. Advantage on Death Saving Throws.' },
-  { name: 'Grappler', description: 'Strength/Dexterity +1. Adv on attacks vs grappled targets.' },
-  { name: 'Great Weapon Master', description: 'Strength +1. Add PB to damage with Heavy weapons.' },
-  { name: 'Healer', description: 'Reroll 1s on healing dice. Use Healer\'s Kit to restore HP.' },
-  { name: 'Inspiring Leader', description: 'Charisma/Wisdom +1. Grant temp HP after rest.' },
-  { name: 'Mage Slayer', description: 'Strength/Dexterity +1. 1 auto-save/rest against spells.' },
-  { name: 'Polearm Master', description: 'Strength/Dexterity +1. Bonus action attack with reach weapons.' },
-  { name: 'Resilient', description: 'Increase ability by 1. Gain proficiency in that save.' },
-  { name: 'Sentinel', description: 'Strength/Dexterity +1. Opportunity attacks stop movement.' },
-  { name: 'Sharpshooter', description: 'Dexterity +1. Ignore cover. Fire at long range without disadvantage.' },
-  { name: 'Shield Master', description: 'Strength +1. Shield Bash to prone/push.' },
-  { name: 'Speedy', description: 'Dexterity/Constitution +1. Speed increases by 10 ft.' },
-  { name: 'Spell Sniper', description: 'Casting Stat +1. Ignore cover. Cast in melee.' },
-  { name: 'War Caster', description: 'Casting Stat +1. Adv on Con saves for concentration.' },
-];
-
 export const MASTERY_DESCRIPTIONS: Record<string, string> = {
-    'Cleave': 'If you hit a creature, you can make a second attack against a creature within 5 feet of it that is also within your reach.',
-    'Graze': 'If you miss a creature, you still deal damage equal to your ability modifier.',
-    'Nick': 'When you make the extra attack of the Light property, you can make it as part of the Attack action instead of as a Bonus Action.',
-    'Push': 'If you hit a creature, you can push it 10 feet away from you.',
-    'Sap': 'If you hit a creature, it has Disadvantage on its next attack roll before the start of your next turn.',
-    'Slow': 'If you hit a creature, its speed is reduced by 10 feet until the start of your next turn.',
-    'Topple': 'If you hit a creature, you can force it to make a Constitution saving throw or fall Prone.',
-    'Vex': 'If you hit a creature and deal damage, you have Advantage on your next attack roll against that creature before the end of your next turn.',
-    '-': 'No mastery property.'
-};
-
-export interface Armor {
-    baseAC: number;
-    type: 'Light' | 'Medium' | 'Heavy' | 'Shield';
-    maxDex?: number; // undefined means unlimited
-    stealthDisadvantage: boolean;
-    cost: number;
-}
-
-export const ARMOR_OPTIONS: Record<string, Armor> = {
-    'Unarmored': { baseAC: 10, type: 'Light', stealthDisadvantage: false, cost: 0 },
-    'Padded': { baseAC: 11, type: 'Light', stealthDisadvantage: true, cost: 5 },
-    'Leather': { baseAC: 11, type: 'Light', stealthDisadvantage: false, cost: 10 },
-    'Studded Leather': { baseAC: 12, type: 'Light', stealthDisadvantage: false, cost: 45 },
-    'Hide': { baseAC: 12, type: 'Medium', maxDex: 2, stealthDisadvantage: false, cost: 10 },
-    'Chain Shirt': { baseAC: 13, type: 'Medium', maxDex: 2, stealthDisadvantage: false, cost: 50 },
-    'Scale Mail': { baseAC: 14, type: 'Medium', maxDex: 2, stealthDisadvantage: true, cost: 50 },
-    'Breastplate': { baseAC: 14, type: 'Medium', maxDex: 2, stealthDisadvantage: false, cost: 400 },
-    'Half Plate': { baseAC: 15, type: 'Medium', maxDex: 2, stealthDisadvantage: true, cost: 750 },
-    'Ring Mail': { baseAC: 14, type: 'Heavy', maxDex: 0, stealthDisadvantage: true, cost: 30 },
-    'Chain Mail': { baseAC: 16, type: 'Heavy', maxDex: 0, stealthDisadvantage: true, cost: 75 },
-    'Splint': { baseAC: 17, type: 'Heavy', maxDex: 0, stealthDisadvantage: true, cost: 200 },
-    'Plate': { baseAC: 18, type: 'Heavy', maxDex: 0, stealthDisadvantage: true, cost: 1500 },
-    'Shield': { baseAC: 2, type: 'Shield', stealthDisadvantage: false, cost: 10 },
+  'Cleave': 'If you hit a creature, you can make a second attack against a different creature within 5 feet of it.',
+  'Graze': 'If you miss a creature, you deal damage equal to the ability modifier you used for the attack.',
+  'Nick': 'When you make the extra attack of the Light property, you can make it as part of the Attack action.',
+  'Push': 'If you hit a creature, you can push it 10 feet away from you.',
+  'Sap': 'If you hit a creature, it has Disadvantage on its next attack roll before the start of your next turn.',
+  'Slow': 'If you hit a creature, its Speed is reduced by 10 feet until the start of your next turn.',
+  'Topple': 'If you hit a creature, you can force it to make a Constitution save or fall Prone.',
+  'Vex': 'If you hit a creature and deal damage, you have Advantage on your next attack roll against it.',
+  '-': 'No mastery property.'
 };
 
 export const ALL_WEAPONS: Record<string, Weapon> = {
-    'Unarmed Strike': { name: 'Unarmed Strike', damage: '1', type: 'Bludgeoning', properties: ['Light'], mastery: '-', equipped: false },
+    // Simple Melee
     'Club': { name: 'Club', damage: '1d4', type: 'Bludgeoning', properties: ['Light'], mastery: 'Slow', equipped: false },
     'Dagger': { name: 'Dagger', damage: '1d4', type: 'Piercing', properties: ['Finesse', 'Light', 'Thrown (20/60)'], mastery: 'Nick', equipped: false },
     'Greatclub': { name: 'Greatclub', damage: '1d8', type: 'Bludgeoning', properties: ['Two-Handed'], mastery: 'Push', equipped: false },
@@ -765,17 +856,21 @@ export const ALL_WEAPONS: Record<string, Weapon> = {
     'Quarterstaff': { name: 'Quarterstaff', damage: '1d6', type: 'Bludgeoning', properties: ['Versatile (1d8)'], mastery: 'Topple', equipped: false },
     'Sickle': { name: 'Sickle', damage: '1d4', type: 'Slashing', properties: ['Light'], mastery: 'Nick', equipped: false },
     'Spear': { name: 'Spear', damage: '1d6', type: 'Piercing', properties: ['Thrown (20/60)', 'Versatile (1d8)'], mastery: 'Sap', equipped: false },
-    'Light Crossbow': { name: 'Light Crossbow', damage: '1d8', type: 'Piercing', properties: ['Ammunition (80/320)', 'Loading', 'Two-Handed'], mastery: 'Slow', equipped: false },
+    
+    // Simple Ranged
     'Dart': { name: 'Dart', damage: '1d4', type: 'Piercing', properties: ['Finesse', 'Thrown (20/60)'], mastery: 'Vex', equipped: false },
+    'Light Crossbow': { name: 'Light Crossbow', damage: '1d8', type: 'Piercing', properties: ['Ammunition (80/320)', 'Loading', 'Two-Handed'], mastery: 'Slow', equipped: false },
     'Shortbow': { name: 'Shortbow', damage: '1d6', type: 'Piercing', properties: ['Ammunition (80/320)', 'Two-Handed'], mastery: 'Vex', equipped: false },
     'Sling': { name: 'Sling', damage: '1d4', type: 'Bludgeoning', properties: ['Ammunition (30/120)'], mastery: 'Slow', equipped: false },
+    
+    // Martial Melee
     'Battleaxe': { name: 'Battleaxe', damage: '1d8', type: 'Slashing', properties: ['Versatile (1d10)'], mastery: 'Topple', equipped: false },
     'Flail': { name: 'Flail', damage: '1d8', type: 'Bludgeoning', properties: [], mastery: 'Sap', equipped: false },
     'Glaive': { name: 'Glaive', damage: '1d10', type: 'Slashing', properties: ['Heavy', 'Reach', 'Two-Handed'], mastery: 'Graze', equipped: false },
     'Greataxe': { name: 'Greataxe', damage: '1d12', type: 'Slashing', properties: ['Heavy', 'Two-Handed'], mastery: 'Cleave', equipped: false },
     'Greatsword': { name: 'Greatsword', damage: '2d6', type: 'Slashing', properties: ['Heavy', 'Two-Handed'], mastery: 'Graze', equipped: false },
     'Halberd': { name: 'Halberd', damage: '1d10', type: 'Slashing', properties: ['Heavy', 'Reach', 'Two-Handed'], mastery: 'Cleave', equipped: false },
-    'Lance': { name: 'Lance', damage: '1d12', type: 'Piercing', properties: ['Reach', 'Special'], mastery: 'Topple', equipped: false },
+    'Lance': { name: 'Lance', damage: '1d12', type: 'Piercing', properties: ['Reach', 'Two-Handed'], mastery: 'Topple', equipped: false },
     'Longsword': { name: 'Longsword', damage: '1d8', type: 'Slashing', properties: ['Versatile (1d10)'], mastery: 'Sap', equipped: false },
     'Maul': { name: 'Maul', damage: '2d6', type: 'Bludgeoning', properties: ['Heavy', 'Two-Handed'], mastery: 'Topple', equipped: false },
     'Morningstar': { name: 'Morningstar', damage: '1d8', type: 'Piercing', properties: [], mastery: 'Sap', equipped: false },
@@ -787,36 +882,101 @@ export const ALL_WEAPONS: Record<string, Weapon> = {
     'War Pick': { name: 'War Pick', damage: '1d8', type: 'Piercing', properties: ['Versatile (1d10)'], mastery: 'Sap', equipped: false },
     'Warhammer': { name: 'Warhammer', damage: '1d8', type: 'Bludgeoning', properties: ['Versatile (1d10)'], mastery: 'Push', equipped: false },
     'Whip': { name: 'Whip', damage: '1d4', type: 'Slashing', properties: ['Finesse', 'Reach'], mastery: 'Slow', equipped: false },
-    'Blowgun': { name: 'Blowgun', damage: '1', type: 'Piercing', properties: ['Ammunition (25/100)', 'Loading'], mastery: '-', equipped: false },
+    
+    // Martial Ranged
+    'Blowgun': { name: 'Blowgun', damage: '1', type: 'Piercing', properties: ['Ammunition (25/100)', 'Loading'], mastery: 'Vex', equipped: false },
     'Hand Crossbow': { name: 'Hand Crossbow', damage: '1d6', type: 'Piercing', properties: ['Ammunition (30/120)', 'Light', 'Loading'], mastery: 'Vex', equipped: false },
     'Heavy Crossbow': { name: 'Heavy Crossbow', damage: '1d10', type: 'Piercing', properties: ['Ammunition (100/400)', 'Heavy', 'Loading', 'Two-Handed'], mastery: 'Push', equipped: false },
     'Longbow': { name: 'Longbow', damage: '1d8', type: 'Piercing', properties: ['Ammunition (150/600)', 'Heavy', 'Two-Handed'], mastery: 'Slow', equipped: false },
     'Musket': { name: 'Musket', damage: '1d12', type: 'Piercing', properties: ['Ammunition (40/120)', 'Loading', 'Two-Handed'], mastery: 'Slow', equipped: false },
     'Pistol': { name: 'Pistol', damage: '1d10', type: 'Piercing', properties: ['Ammunition (30/90)', 'Loading'], mastery: 'Vex', equipped: false },
-    'Shield': { name: 'Shield', damage: '--', type: 'Armor', properties: ['Shield (+2 AC)'], mastery: '-', equipped: false },
+    
+    // Special
+    'Unarmed Strike': { name: 'Unarmed Strike', damage: '1', type: 'Bludgeoning', properties: [], mastery: '-', equipped: true },
+    'Shield': { name: 'Shield', damage: '--', type: 'Armor', properties: ['+2 AC'], mastery: '-', equipped: false }
 };
 
-interface LevelData {
-    features: string[];
-    subclass?: boolean;
-    asi?: boolean;
+export interface Armor {
+    baseAC: number;
+    maxDex?: number; // undefined means unlimited
+    stealthDisadvantage: boolean;
+    strengthReq: number;
+    type: 'Light' | 'Medium' | 'Heavy' | 'Shield';
 }
 
-export const getLevelData = (className: string, level: number): LevelData => {
-    // Simplified logic for standard 2024 progression
-    // Most classes get Subclass at level 3.
-    // ASI at 4, 8, 12, 16, 19.
-    const isAsi = [4, 8, 12, 16, 19].includes(level);
-    const isSubclass = level === 3; // 2024 standardized subclass level
+export const ARMOR_OPTIONS: Record<string, Armor> = {
+    'Padded': { baseAC: 11, type: 'Light', stealthDisadvantage: true, strengthReq: 0 },
+    'Leather': { baseAC: 11, type: 'Light', stealthDisadvantage: false, strengthReq: 0 },
+    'Studded Leather': { baseAC: 12, type: 'Light', stealthDisadvantage: false, strengthReq: 0 },
+    'Hide': { baseAC: 12, maxDex: 2, type: 'Medium', stealthDisadvantage: false, strengthReq: 0 },
+    'Chain Shirt': { baseAC: 13, maxDex: 2, type: 'Medium', stealthDisadvantage: false, strengthReq: 0 },
+    'Scale Mail': { baseAC: 14, maxDex: 2, type: 'Medium', stealthDisadvantage: true, strengthReq: 0 },
+    'Breastplate': { baseAC: 14, maxDex: 2, type: 'Medium', stealthDisadvantage: false, strengthReq: 0 },
+    'Half Plate': { baseAC: 15, maxDex: 2, type: 'Medium', stealthDisadvantage: true, strengthReq: 0 },
+    'Ring Mail': { baseAC: 14, maxDex: 0, type: 'Heavy', stealthDisadvantage: true, strengthReq: 0 },
+    'Chain Mail': { baseAC: 16, maxDex: 0, type: 'Heavy', stealthDisadvantage: true, strengthReq: 13 },
+    'Splint': { baseAC: 17, maxDex: 0, type: 'Heavy', stealthDisadvantage: true, strengthReq: 15 },
+    'Plate': { baseAC: 18, maxDex: 0, type: 'Heavy', stealthDisadvantage: true, strengthReq: 15 },
+    'Shield': { baseAC: 2, type: 'Shield', stealthDisadvantage: false, strengthReq: 0 }
+};
 
-    const features: string[] = [];
+export const FEAT_OPTIONS: { name: string, description: string }[] = [
+    { name: 'Ability Score Improvement', description: 'Increase one Ability Score by 2, or two Ability Scores by 1.' },
+    { name: 'Actor', description: 'Increase CHA. Advantage on Deception/Performance to mimic.' },
+    { name: 'Alert', description: 'Add PB to Initiative. Swap initiative with willing ally.' },
+    { name: 'Athlete', description: 'Increase STR/DEX. Stand up with 5ft movement. Climb faster.' },
+    { name: 'Charger', description: 'Increase STR/DEX. Improved Dash or Push attacks.' },
+    { name: 'Crafter', description: 'Discount on nonmagical items. Fast crafting.' },
+    { name: 'Crossbow Expert', description: 'Increase DEX. Ignore Loading. Fire in melee without disadvantage.' },
+    { name: 'Defensive Duelist', description: 'Increase DEX. Use Reaction to add PB to AC.' },
+    { name: 'Dual Wielder', description: 'Increase STR/DEX. Two-Weapon Fighting with non-Light weapons.' },
+    { name: 'Durable', description: 'Increase CON. Advantage on Death Saves. Hit Die healing improved.' },
+    { name: 'Elementalist', description: 'Increase INT/WIS/CHA. Spells ignore resistance to an elemental type.' },
+    { name: 'Great Weapon Master', description: 'Increase STR. On Crit/Kill, bonus action attack. Add PB to damage.' },
+    { name: 'Healer', description: 'Increase WIS. Reroll 1s on healing spells. Med kit usage improved.' },
+    { name: 'Heavily Armored', description: 'Increase STR/CON. Gain Heavy Armor proficiency.' },
+    { name: 'Heavy Armor Master', description: 'Increase STR/CON. Reduce incoming non-magical damage by PB.' },
+    { name: 'Inspiring Leader', description: 'Increase WIS/CHA. Grant Temp HP to allies after rest.' },
+    { name: 'Keen Mind', description: 'Increase INT. Expertise in one INT skill.' },
+    { name: 'Lightly Armored', description: 'Increase STR/DEX. Gain Light/Medium Armor and Shield proficiency.' },
+    { name: 'Lucky', description: 'Gain Luck Points to grant Advantage or impose Disadvantage.' },
+    { name: 'Mage Slayer', description: 'Increase STR/DEX. Reaction to attack caster. Adv on saves vs spells.' },
+    { name: 'Magic Initiate', description: 'Learn 2 Cantrips and 1 Level 1 Spell from a class list.' },
+    { name: 'Martial Weapon Training', description: 'Increase STR/DEX. Proficiency in Martial Weapons.' },
+    { name: 'Medium Armor Master', description: 'Increase STR/DEX. Ignore Max Dex 2 limit on Medium Armor.' },
+    { name: 'Mobile', description: 'Increase DEX/STR. Speed +10ft. Dash ignores difficult terrain.' },
+    { name: 'Moderately Armored', description: 'Increase STR/DEX. Medium Armor and Shield proficiency.' },
+    { name: 'Mounted Combatant', description: 'Increase STR/WIS. Advantage on attacks vs smaller creatures while mounted.' },
+    { name: 'Musician', description: 'Increase STR/DEX/CHA. Grant Heroic Inspiration to allies after rest.' },
+    { name: 'Observant', description: 'Increase INT/WIS. Expertise in Investigation, Perception, or Insight.' },
+    { name: 'Polearm Master', description: 'Increase STR/DEX. Bonus action attack with butt end. Opportunity attack on entry.' },
+    { name: 'Resilient', description: 'Increase one score. Gain proficiency in saves for that score.' },
+    { name: 'Ritual Caster', description: 'Increase INT/WIS/CHA. Can cast ritual spells.' },
+    { name: 'Savage Attacker', description: 'Increase STR/DEX. Advantage on weapon damage rolls.' },
+    { name: 'Sentinel', description: 'Increase STR/DEX. Opportunity attacks stop movement. Reaction attack if ally hit.' },
+    { name: 'Sharpshooter', description: 'Increase DEX. Ignore cover. Fire at long range without disadvantage.' },
+    { name: 'Shield Master', description: 'Increase STR. Bash as bonus action. Add shield AC to DEX saves.' },
+    { name: 'Skilled', description: 'Gain proficiency in 3 Skills or Tools.' },
+    { name: 'Skulker', description: 'Increase DEX. Hide when lightly obscured. Missed hidden attacks don\'t reveal.' },
+    { name: 'Speedy', description: 'Increase DEX/CON. Speed +10ft. Dash ignores difficult terrain.' },
+    { name: 'Spell Sniper', description: 'Increase INT/WIS/CHA. Ignore cover. Spell range doubled.' },
+    { name: 'Tavern Brawler', description: 'Increase STR/CON. Unarmed damage 1d4. Grapple as bonus action.' },
+    { name: 'Tough', description: 'HP max increases by 2 per level.' },
+    { name: 'War Caster', description: 'Increase INT/WIS/CHA. Advantage on CON saves. Cast spell as Opportunity Attack.' },
+    { name: 'Weapon Master', description: 'Increase STR/DEX. Proficiency with 4 weapons. Unlock mastery.' },
+];
+
+export const getLevelData = (className: string, level: number): { features: string[], asi: boolean, subclass: boolean } => {
+    const progression = CLASS_PROGRESSION[className] || {};
+    const features = progression[level] || [];
     
-    // Check our progression map
-    if (CLASS_PROGRESSION[className] && CLASS_PROGRESSION[className][level]) {
-        features.push(...CLASS_PROGRESSION[className][level]);
-    }
-    
-    if (isAsi) features.push('Ability Score Improvement');
-    
-    return { features, subclass: isSubclass, asi: isAsi };
+    // Check for ASI (Levels 4, 8, 12, 16, 19 + Fighter/Rogue extras)
+    let asi = [4, 8, 12, 16, 19].includes(level);
+    if (className === 'Fighter' && [6, 14].includes(level)) asi = true;
+    if (className === 'Rogue' && level === 10) asi = true;
+
+    // Check for Subclass (Standard is 3, but some might differ in 2024, generally 3 across board now)
+    const subclass = level === 3;
+
+    return { features, asi, subclass };
 };
