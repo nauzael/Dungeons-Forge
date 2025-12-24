@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Character } from '../types';
-import { Plus, User, Trash2, ArrowRight } from 'lucide-react';
+import { Plus, User, Trash2, Download } from 'lucide-react';
 
 interface DashboardProps {
     characters: Character[];
@@ -11,6 +11,34 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ characters, onCreateNew, onSelectCharacter, onDeleteCharacter }) => {
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+    useEffect(() => {
+        const handler = (e: any) => {
+            // Prevent the mini-infobar from appearing on mobile
+            e.preventDefault();
+            // Stash the event so it can be triggered later.
+            setDeferredPrompt(e);
+        };
+
+        window.addEventListener('beforeinstallprompt', handler);
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handler);
+        };
+    }, []);
+
+    const handleInstallClick = async () => {
+        if (!deferredPrompt) return;
+        // Show the install prompt
+        deferredPrompt.prompt();
+        // Wait for the user to respond to the prompt
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setDeferredPrompt(null);
+        }
+    };
+
     return (
         <div className="max-w-4xl mx-auto py-8 px-4 font-sans">
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
@@ -18,12 +46,22 @@ const Dashboard: React.FC<DashboardProps> = ({ characters, onCreateNew, onSelect
                     <h1 className="text-4xl font-serif font-bold text-stone-100 mb-2">Adventure Awaits</h1>
                     <p className="text-stone-500 text-lg">Select a hero or forge a new destiny.</p>
                 </div>
-                <button 
-                    onClick={onCreateNew}
-                    className="bg-amber-700 hover:bg-amber-600 text-white px-6 py-4 rounded-xl flex items-center justify-center gap-3 font-bold transition-all shadow-lg hover:shadow-amber-900/40 w-full md:w-auto active:scale-95"
-                >
-                    <Plus size={24} /> <span>Create Character</span>
-                </button>
+                <div className="flex gap-3 w-full md:w-auto flex-col sm:flex-row">
+                    {deferredPrompt && (
+                        <button 
+                            onClick={handleInstallClick}
+                            className="bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700 px-6 py-4 rounded-xl flex items-center justify-center gap-3 font-bold transition-all shadow-lg active:scale-95"
+                        >
+                            <Download size={24} /> <span>Install App</span>
+                        </button>
+                    )}
+                    <button 
+                        onClick={onCreateNew}
+                        className="bg-amber-700 hover:bg-amber-600 text-white px-6 py-4 rounded-xl flex items-center justify-center gap-3 font-bold transition-all shadow-lg hover:shadow-amber-900/40 active:scale-95"
+                    >
+                        <Plus size={24} /> <span>Create Character</span>
+                    </button>
+                </div>
             </div>
 
             {characters.length === 0 ? (
