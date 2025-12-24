@@ -12,12 +12,148 @@ export const FEAT_OPTIONS: { name: string, description: string }[] = [
 ];
 
 export const GENERIC_FEATURES: Record<string, string> = {
-  'Action Surge': 'You can push yourself beyond your normal limits for a moment. On your turn, you can take one additional action.', 'Cunning Action': 'You can take a Bonus Action on each of your turns in combat. This action can be used only to take the Dash, Disengage, or Hide action.', 'Divine Smite': 'When you hit a creature with a melee weapon attack, you can expend one spell slot to deal radiant damage to the target.', 'Wild Shape': 'You can use your Magic action to magically assume the shape of a beast that you have seen before.', 'Extra Attack': 'You can attack twice, instead of once, whenever you take the Attack action on your turn.',
-  'Reckless Attack': 'When you make your first attack on your turn, you can decide to attack recklessly. You have advantage on melee weapon attack rolls using Strength during this turn, but attack rolls against you have advantage until your next turn.', 'Danger Sense': 'You have advantage on Dexterity saving throws against effects that you can see, such as traps and spells.', 'Fighting Style': 'You adopt a particular style of fighting as your specialty (e.g., Archery, Defense, Dueling).', 'Deft Explorer': 'You are an unsurpassed explorer and survivor.', 'Step of the Wind': 'You can spend a Focus Point to take the Disengage or Dash action as a Bonus Action, and your jump distance is doubled for the turn.',
-  'Patient Defense': 'You can spend a Focus Point to take the Dodge action as a Bonus Action.', 'Uncanny Metabolism': 'When you roll Initiative, you can regain all expended Focus Points. Once per Long Rest.', 'Destroy Undead': 'When an undead fails its saving throw against your Turn Undead feature, the creature is instantly destroyed if its Challenge Rating is at or below a certain threshold.', 'Wild Resurgence': 'You can expend a spell slot to regain a use of Wild Shape, or expend a Wild Shape use to regain a spell slot.', 'Uncanny Dodge': 'When an attacker that you can see hits you with an attack, you can use your reaction to halve the attack\'s damage against you.', 'Sorcerous Restoration': 'You regain Sorcery Points whenever you finish a Short Rest or Long Rest.',
-  'Eldritch Invocation': 'In your study of occult lore, you have unearthed Eldritch Invocations, fragments of forbidden knowledge that imbue you with an abiding magical ability.', 'Arcane Recovery': 'Once per day when you finish a Short Rest, you can choose expended spell slots to recover.', 'Tactical Mind': 'When you fail an ability check, you can expend a use of Second Wind to add 1d10 to the roll.', 'Ability Score Improvement': 'You can increase one Ability Score by 2, or two Ability Scores by 1. Alternatively, you can take a Feat.', 'Tactical Shift': 'Whenever you activate your Second Wind with a Bonus Action, you can move up to half your Speed without provoking Opportunity Attacks.', 'Primal Knowledge': 'Gain proficiency in another skill. While Raging, use Strength for Acrobatics, Intimidation, Perception, Stealth, or Survival checks.',
-  'Instinctive Pounce': 'As part of the Bonus Action to enter Rage, you can move up to half your Speed.', 'Magical Cunning': 'Perform a 1-minute rite to regain expended Pact Magic spell slots (up to half max). Once per Long Rest.', 'Memorize Spell': 'Whenever you finish a Short Rest, you can study your spellbook and replace one prepared level 1+ spell.', 'Scholar': 'You have Expertise in one of the following skills: Arcana, History, Investigation, Medicine, Nature, or Religion.', 'Metamagic': 'You gain the ability to twist your spells to suit your needs.', 'Font of Magic': 'You can tap into the wellspring of magic within yourself, represented by Sorcery Points.', 'Innate Sorcery': 'Bonus Action to activate a rage-like state increasing spell DC and gain Advantage on Sorcerer spell attacks for 1 minute.', 'Cunning Strike': 'Trade Sneak Attack damage dice for special effects like Poison (1d6), Trip (1d6), or Withdraw (1d6).', 'Steady Aim': 'Bonus Action to give yourself Advantage on next attack roll. Speed becomes 0.', 'Roving': 'Speed increases by 10 ft. Gain Climb and Swim speeds equal to Speed.', 'Tireless': 'Action to gain Temp HP. Reduce Exhaustion on Short Rest.', 'Nature\'s Veil': 'Bonus Action to become Invisible until the end of your next turn.',
-  'Paladin\'s Smite': 'You always have Divine Smite prepared. Cast it once without a slot per Long Rest.', 'Faithful Steed': 'You always have Find Steed prepared. Cast it once without a slot per Long Rest.', 'Abjure Foes': 'Channel Divinity to Frighten foes and restrict their actions.', 'Monk\'s Focus': 'You have a pool of Focus Points to fuel your monk features.', 'Deflect Attacks': 'Reaction to reduce damage from melee or ranged attacks. Spend Focus to redirect.', 'Divine Order': 'Choose Protector (Heavy Armor/Martial Weapons) or Thaumaturge (Extra Cantrip/Skill Bonus).', 'Sear Undead': 'Turn Undead deals Radiant damage.', 'Blessed Strikes': 'Choose Divine Strike (extra damage) or Potent Spellcasting (cantrip damage).', 'Divine Intervention': 'As a Magic Action, cast any Cleric spell of level 5 or lower without a slot.',
-  'Magical Secrets': 'Choose prepared spells from the Cleric, Druid, or Wizard spell lists.', 'Words of Creation': 'You always have Power Word Heal and Power Word Kill prepared.', 'Primal Order': 'Choose Magician (Extra Cantrip/Skill Bonus) or Warden (Medium Armor/Martial Weapons).', 'Elemental Fury': 'Choose Potent Spellcasting (cantrip damage) or Primal Strike (weapon elemental damage).', 'Tactical Master': 'When you attack with a weapon whose mastery property you can use, you can replace that property with Push, Sap, or Slow.', 'Studied Attacks': 'If you make an attack roll against a creature and miss, you have Advantage on your next attack roll against that creature.', 'Brutal Strike': 'If you use Reckless Attack, you can forgo Advantage to deal extra 1d10 damage and apply an effect like Forceful Blow or Hamstring Blow.',
-  'Relentless Hunter': 'Taking damage can\'t break your Concentration on Hunter\'s Mark.', 'Deflect Energy': 'You can now use Deflect Attacks against attacks that deal any damage type, not just B/P/S.', 'Contact Patron': 'You always have Contact Other Plane prepared and can cast it without a slot once per Long Rest (success guaranteed).', 'Mystic Arcanum': 'Choose a high-level spell (6th, 7th, 8th, or 9th) to cast once per Long Rest without a slot.', 'Eldritch Master': 'When you use Magical Cunning, you regain all expended Pact Magic spell slots.'
+  // General & Feats
+  'Ability Score Improvement': 'Increase one Ability Score by 2, or two Ability Scores by 1. Alternatively, you can select a Feat.',
+  'Eldritch Invocation': 'Pieces of forbidden knowledge that imbue you with an abiding magical ability.',
+  'Fighting Style': 'You adopt a particular style of fighting as your specialty (e.g., Archery, Defense, Dueling) granting specific bonuses.',
+  'Weapon Mastery': 'You can use the mastery properties (like Cleave, Topple, Vex) of weapons you have mastered.',
+  'Spellcasting': 'You can cast spells. See your Spells tab for details on slots, preparation, and your spell list.',
+  'Expertise': 'Choose a skill you are proficient in. Your proficiency bonus is doubled for any ability check you make that uses the chosen skill.',
+  'Epic Boon': 'A powerful feat granted at level 19, representing your ascent to legendary status.',
+
+  // Barbarian
+  'Rage': 'Bonus Action. Advantage on STR checks/saves, Resistance to B/P/S damage, +Rage Damage. Cannot cast spells.',
+  'Unarmored Defense': 'While not wearing armor, AC equals 10 + DEX mod + CON mod (or WIS for Monks). You can use a Shield (Barbarian only).',
+  'Reckless Attack': 'Advantage on STR attacks for the turn, but attacks against you have Advantage.',
+  'Danger Sense': 'Advantage on DEX saves against effects you can see.',
+  'Primal Knowledge': 'Gain proficiency in another skill. While Raging, use Strength for Acrobatics, Intimidation, Perception, Stealth, or Survival.',
+  'Extra Attack': 'You can attack twice, instead of once, whenever you take the Attack action on your turn.',
+  'Fast Movement': 'Your speed increases by 10 feet while you aren\'t wearing Heavy armor.',
+  'Feral Instinct': 'Advantage on Initiative rolls.',
+  'Instinctive Pounce': 'As part of the Bonus Action to enter Rage, you can move up to half your Speed.',
+  'Brutal Strike': 'Forgo Advantage on a Reckless Attack to deal extra 1d10 damage and apply an effect (Forceful Blow or Hamstring Blow).',
+  'Relentless Rage': 'If you drop to 0 HP while Raging, DC 10 CON save to drop to 2x Level HP instead.',
+  'Improved Brutal Strike': 'Brutal Strike damage increases to 2d10. Can use two effects.',
+  'Persistent Rage': 'Regain all Rage uses on Initiative. Rage lasts 10 mins without needing to be extended.',
+  'Indomitable Might': 'If your total for a Strength check is less than your Strength score, you can use the score.',
+  'Primal Champion': 'Strength and Constitution scores increase by 4 (max 25).',
+
+  // Bard
+  'Bardic Inspiration': 'Bonus Action. Grant a die (d6-d12) to a creature. They can add it to a d20 Test, or use for subclass features.',
+  'Jack of All Trades': 'Add half PB to any ability check you make that doesn\'t already include your PB.',
+  'Font of Inspiration': 'Regain Bardic Inspiration on Short or Long Rest. Expend spell slot to regain a use.',
+  'Countercharm': 'Reaction. Disrupt mind-influencing effects. Adv on saves vs Charmed/Frightened for you or target.',
+  'Magical Secrets': 'Choose prepared spells from the Cleric, Druid, or Wizard spell lists.',
+  'Superior Inspiration': 'Regain up to 2 uses of Bardic Inspiration when you roll Initiative.',
+  'Words of Creation': 'You always have Power Word Heal and Power Word Kill prepared.',
+
+  // Cleric
+  'Divine Order': 'Choose Protector (Heavy Armor/Martial Weapons) or Thaumaturge (Extra Cantrip/Religion Bonus).',
+  'Channel Divinity': 'Fuel magical effects like Divine Spark or Turn Undead. Regain on Short/Long Rest.',
+  'Divine Spark': 'Magic Action. Heal 1d8+WIS or deal 1d8+WIS Radiant/Necrotic damage.',
+  'Turn Undead': 'Magic Action. Undead within 30ft save or become Frightened/Incapacitated.',
+  'Sear Undead': 'Turn Undead deals Radiant damage equal to Wis mod d8s.',
+  'Blessed Strikes': 'Choose Divine Strike (1d8 extra weapon dmg) or Potent Spellcasting (WIS mod to cantrip dmg).',
+  'Divine Intervention': 'Magic Action. Cast any Cleric spell of level 5 or lower without a slot.',
+  'Improved Blessed Strikes': 'Divine Strike becomes 2d8, or Potent Spellcasting grants Temp HP.',
+  'Greater Divine Intervention': 'Divine Intervention can cast Wish.',
+
+  // Druid
+  'Druidic': 'You know the secret language of Druids and always have Speak with Animals prepared.',
+  'Primal Order': 'Choose Magician (Extra Cantrip/Nature Bonus) or Warden (Medium Armor/Martial Weapons).',
+  'Wild Shape': 'Bonus Action. Transform into a Beast (Max CR varies). Gain Temp HP.',
+  'Wild Companion': 'Expend a use of Wild Shape to cast Find Familiar.',
+  'Wild Resurgence': 'Expend a spell slot to regain Wild Shape use, or expend Wild Shape to regain a level 1 slot.',
+  'Elemental Fury': 'Choose Potent Spellcasting (WIS to cantrip dmg) or Primal Strike (1d8 Cold/Fire/Lightning/Thunder on hit).',
+  'Improved Elemental Fury': 'Potent Spellcasting range +300ft, or Primal Strike 2d8.',
+  'Beast Spells': 'Cast spells while in Wild Shape (if no material cost).',
+  'Archdruid': 'Regain Wild Shape on Initiative. Convert Wild Shape to spell slots. Age slower.',
+
+  // Fighter
+  'Second Wind': 'Bonus Action. Regain 1d10 + Fighter Level HP. Can also be used for Tactical Mind/Shift.',
+  'Action Surge': 'Take one additional action on your turn. Once per Short/Long rest.',
+  'Tactical Mind': 'Expend Second Wind on a failed ability check to add 1d10 to the roll.',
+  'Tactical Shift': 'Move half speed without provoking attacks when you use Second Wind.',
+  'Indomitable': 'Reroll a failed saving throw with a bonus equal to Fighter Level.',
+  'Tactical Master': 'Replace weapon mastery property with Push, Sap, or Slow on an attack.',
+  'Two Extra Attacks': 'You can attack three times whenever you take the Attack action.',
+  'Studied Attacks': 'If you miss an attack, you have Advantage on your next attack against that creature.',
+  'Three Extra Attacks': 'You can attack four times whenever you take the Attack action.',
+
+  // Monk
+  'Monk\'s Focus': 'Focus Points fuel abilities like Flurry of Blows, Patient Defense, and Step of the Wind.',
+  'Unarmored Movement': 'Speed increases while unarmored. Eventually run on walls/water.',
+  'Uncanny Metabolism': 'On Initiative, regain all Focus Points and heal HP (Die + Level). Once per LR.',
+  'Deflect Attacks': 'Reaction to reduce damage from a melee or ranged attack. If 0 damage, spend Focus to redirect.',
+  'Slow Fall': 'Reaction to reduce falling damage by 5 x Monk Level.',
+  'Stunning Strike': 'Spend 1 Focus on hit. CON save or Stunned. On success, speed halved.',
+  'Empowered Strikes': 'Unarmed strikes can deal Force damage.',
+  'Evasion': 'On DEX saves for half damage, take none on success and half on fail.',
+  'Acrobatic Movement': 'Move along vertical surfaces and liquids without falling.',
+  'Heightened Focus': 'Flurry gives 3 attacks. Patient Defense heals. Step of Wind moves allies.',
+  'Self-Restoration': 'Bonus Action to end Charmed/Frightened/Poisoned. No exhaustion from food/drink.',
+  'Deflect Energy': 'Deflect Attacks works on any damage type.',
+  'Disciplined Survivor': 'Proficiency in all Saving Throws. Reroll failed saves with Focus.',
+  'Perfect Focus': 'Regain Focus Points on Initiative if you have 3 or fewer.',
+  'Superior Defense': 'Action (spend 3 Focus). Resistance to all damage except Force for 1 min.',
+  'Body and Mind': 'DEX and WIS scores increase by 4 (max 25).',
+
+  // Paladin
+  'Lay On Hands': 'Bonus Action. Pool of healing (5 x Level). Touch to heal or cure conditions (5 points).',
+  'Paladin\'s Smite': 'Always have Divine Smite prepared. Cast once freely per Long Rest.',
+  'Faithful Steed': 'Always have Find Steed prepared. Cast once freely per Long Rest.',
+  'Aura of Protection': 'Allies within 10ft add your CHA mod to Saving Throws.',
+  'Abjure Foes': 'Magic Action. Channel Divinity to Frighten foes and restrict their actions.',
+  'Aura of Courage': 'You and allies in aura are immune to Frightened.',
+  'Radiant Strikes': 'Melee attacks deal extra 1d8 Radiant damage.',
+  'Restoring Touch': 'Remove conditions (Blinded, Charmed, etc.) with Lay On Hands (5 pts).',
+  'Aura Expansion': 'Aura of Protection range increases to 30 feet.',
+
+  // Ranger
+  'Favored Enemy': 'Always have Hunter\'s Mark prepared. Free casts. Damage increases to 1d10 at lvl 20.',
+  'Deft Explorer': 'Gain Expertise in one skill and learn two languages.',
+  'Roving': 'Speed +10ft. Gain Climb and Swim speeds equal to Speed.',
+  'Tireless': 'Magic Action to gain Temp HP (1d8+WIS). Reduce Exhaustion on Short Rest.',
+  'Relentless Hunter': 'Taking damage doesn\'t break Concentration on Hunter\'s Mark.',
+  'Nature\'s Veil': 'Bonus Action. Become Invisible until the end of your next turn.',
+  'Precise Hunter': 'Advantage on attacks against creature marked by Hunter\'s Mark.',
+  'Feral Senses': 'Gain Blindsight with a range of 30 feet.',
+  'Foe Slayer': 'Hunter\'s Mark damage die becomes a d10.',
+
+  // Rogue
+  'Sneak Attack': 'Deal extra damage once per turn to a creature you hit with Advantage or ally adjacent.',
+  'Thieves\' Cant': 'You know the secret rogue language and one other language.',
+  'Cunning Action': 'Bonus Action to Dash, Disengage, or Hide.',
+  'Steady Aim': 'Bonus Action. Gain Advantage on next attack. Speed becomes 0.',
+  'Uncanny Dodge': 'Reaction to halve damage from an attack you can see.',
+  'Cunning Strike': 'Trade Sneak Attack dice for effects (Poison, Trip, Withdraw).',
+  'Reliable Talent': 'Treat d20 rolls of 9 or lower as a 10 for proficient skills/tools.',
+  'Improved Cunning Strike': 'Use up to two Cunning Strike effects at once.',
+  'Devious Strikes': 'New Cunning Strike options: Daze, Knock Out, Obscure.',
+  'Slippery Mind': 'Proficiency in Wisdom and Charisma saving throws.',
+  'Elusive': 'No attack roll has Advantage against you.',
+  'Stroke of Luck': 'Treat a failed d20 Test as a 20. Once per Short/Long Rest.',
+
+  // Sorcerer
+  'Innate Sorcery': 'Bonus Action. +1 Spell DC, Advantage on spell attacks for 1 min.',
+  'Font of Magic': 'Convert Sorcery Points to Spell Slots and vice versa.',
+  'Metamagic': 'Spend Sorcery Points to alter spells (e.g., Quickened, Subtle, Twinned).',
+  'Sorcerous Restoration': 'Regain Sorcery Points on Short Rest.',
+  'Sorcery Incarnate': 'Regain Innate Sorcery uses. Use 2 Metamagics at once.',
+  'Arcane Apotheosis': 'While Innate Sorcery is active, use one Metamagic option per turn for free.',
+
+  // Warlock
+  'Pact Magic': 'Spell slots are always max level and recharge on Short Rest.',
+  'Magical Cunning': '1 Minute ritual to regain half your Pact Slots. Once per Long Rest.',
+  'Contact Patron': 'Always have Contact Other Plane prepared. Cast safely once per LR.',
+  'Mystic Arcanum': 'Choose high-level spell (6th-9th) to cast once per Long Rest without a slot.',
+  'Eldritch Master': 'Magical Cunning restores all spell slots.',
+
+  // Wizard
+  'Ritual Adept': 'Cast ritual spells from your book without preparing them.',
+  'Arcane Recovery': 'Regain spell slots (combined level = half wizard level) on Short Rest.',
+  'Scholar': 'Expertise in one Academic skill (Arcana, History, etc.).',
+  'Memorize Spell': 'Swap one prepared spell for another from your book on a Short Rest.',
+  'Spell Mastery': 'Choose a lvl 1 and lvl 2 spell to cast at will (lowest level).',
+  'Signature Spells': 'Choose two lvl 3 spells. Always prepared, cast free once per Short Rest.'
 };

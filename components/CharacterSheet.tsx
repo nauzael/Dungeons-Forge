@@ -6,7 +6,7 @@ import { askDndRules } from '../services/geminiService';
 import { 
     MASTERY_DESCRIPTIONS, ALL_WEAPONS, ARMOR_OPTIONS, HIT_DIE, getLevelData, SUBCLASS_OPTIONS, 
     FEAT_OPTIONS, ABILITY_NAMES, GENERIC_FEATURES, SPECIES_DETAILS, CLASS_DETAILS, BACKGROUNDS_DATA, 
-    SKILL_LIST, SKILL_ABILITY_MAP, CLASS_SAVING_THROWS, SPELLCASTING_ABILITY, 
+    SKILL_LIST, SKILL_ABILITY_MAP, SKILL_DESCRIPTIONS, CLASS_SAVING_THROWS, SPELLCASTING_ABILITY, 
     CASTER_TYPE, MAX_SPELL_LEVEL, SPELL_DETAILS, SPELL_LIST_BY_CLASS, CANTRIPS_KNOWN_BY_LEVEL, 
     SPELLS_KNOWN_BY_LEVEL, PREPARED_CASTERS 
 } from '../constants';
@@ -620,7 +620,8 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
 
     return (
         <div className="min-h-screen bg-stone-950 font-sans pb-32" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
-            <div className="sticky top-0 z-50 px-4 py-3 bg-stone-950/95 backdrop-blur-md border-b border-stone-800 shadow-md">
+            {/* Sticky Header with Safe Area Padding */}
+            <div className="sticky top-0 z-50 px-4 pb-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] bg-stone-950/95 backdrop-blur-md border-b border-stone-800 shadow-md">
                 <div className="flex items-center justify-between">
                     <button onClick={onBack} className="w-10 h-10 flex items-center justify-center text-stone-400 hover:text-white rounded-full active:bg-stone-900 transition-colors"><ArrowLeft size={24}/></button>
                     <div className="flex flex-col items-center">
@@ -680,7 +681,7 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                                         const isProficient = character.skills.includes(skill);
                                         const total = mod + (isProficient ? character.proficiencyBonus : 0);
                                         return (
-                                            <div key={skill} className="flex justify-between items-center text-sm py-1 border-b border-stone-800/50 last:border-0">
+                                            <div key={skill} title={SKILL_DESCRIPTIONS[skill]} className="flex justify-between items-center text-sm py-1 border-b border-stone-800/50 last:border-0 hover:bg-stone-800/30 rounded cursor-help">
                                                 <div className="flex items-center gap-2 overflow-hidden">
                                                     <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isProficient ? 'bg-amber-500' : 'bg-stone-700'}`}></div>
                                                     <span className={`truncate ${isProficient ? 'text-stone-200 font-bold' : 'text-stone-500'}`}>{skill}</span>

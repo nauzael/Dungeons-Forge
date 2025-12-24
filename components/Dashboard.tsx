@@ -40,7 +40,7 @@ const Dashboard: React.FC<DashboardProps> = ({ characters, onCreateNew, onSelect
     };
 
     return (
-        <div className="max-w-4xl mx-auto py-8 px-4 font-sans">
+        <div className="max-w-4xl mx-auto pb-8 px-4 pt-[calc(2rem_+_env(safe-area-inset-top))] font-sans">
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
                 <div>
                     <h1 className="text-4xl font-serif font-bold text-stone-100 mb-2">Adventure Awaits</h1>

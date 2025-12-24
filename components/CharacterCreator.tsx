@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { SPECIES_LIST, CLASS_LIST, BACKGROUNDS_DATA, STANDARD_ARRAY, ABILITY_NAMES, HIT_DIE, CLASS_FEATURES, CLASS_STAT_PRIORITIES, CLASS_DETAILS, SPECIES_DETAILS, ALIGNMENTS, LANGUAGES, CLASS_SKILL_DATA, SKILL_LIST, CLASS_SAVING_THROWS, SPELLCASTING_ABILITY } from '../constants';
 import { Character, AbilityScores, Ability, Weapon, Skill, DetailData, BackgroundData } from '../types';
@@ -344,9 +343,9 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
     };
 
     return (
-        <div className="min-h-screen bg-stone-900 pb-28 flex flex-col font-sans relative">
-            {/* Sticky Header */}
-            <div className="sticky top-0 z-30 bg-stone-950 p-6 border-b border-stone-800 flex justify-between items-center shadow-lg">
+        <div className="min-h-screen bg-stone-900 pb-32 flex flex-col font-sans relative">
+            {/* Sticky Header with Safe Area Padding */}
+            <div className="sticky top-0 z-30 bg-stone-950 px-6 pb-6 pt-[calc(1.5rem_+_env(safe-area-inset-top))] border-b border-stone-800 flex justify-between items-center shadow-lg">
                 <h2 className="text-xl font-serif font-bold text-amber-500">New Character</h2>
                 <div className="flex gap-2">
                     {[1, 2, 3, 4, 5].map(s => (
@@ -711,8 +710,8 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
 
             </div>
 
-            {/* Footer Navigation (Fixed Bottom) */}
-            <div className="fixed bottom-0 w-full bg-stone-950 p-4 border-t border-stone-800 flex justify-between gap-4 z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+            {/* Footer Navigation (Fixed Bottom) with Safe Area Padding */}
+            <div className="fixed bottom-0 w-full bg-stone-950 px-4 pb-[calc(1rem_+_env(safe-area-inset-bottom))] pt-4 border-t border-stone-800 flex justify-between gap-4 z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
                 <button 
                     onClick={() => step === 1 ? onCancel() : setStep(s => s - 1)}
                     className="flex-1 bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white py-4 rounded-xl font-bold transition-colors border border-stone-800"

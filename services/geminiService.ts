@@ -1,38 +1,41 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-// Lazy initialization to prevent startup crashes if API_KEY is missing
+// Ensure the API key is read from the environment variable as per guidelines.
+// In Vite, this string replacement happens at build time.
+const apiKey = process.env.API_KEY;
+
 let ai: GoogleGenAI | null = null;
 
 const getAiClient = () => {
-    if (!ai) {
-        const key = process.env.API_KEY;
-        if (key) {
-            try {
-                ai = new GoogleGenAI({ apiKey: key });
-            } catch (e) {
-                console.error("Failed to initialize Gemini Client:", e);
-            }
-        } else {
-            console.warn("Gemini API Key is missing. AI features will be disabled.");
+    if (!ai && apiKey) {
+        try {
+            ai = new GoogleGenAI({ apiKey: apiKey });
+        } catch (e) {
+            console.error("Failed to initialize Gemini Client:", e);
         }
     }
     return ai;
 };
 
+// Using gemini-3-flash-preview for low latency responses suitable for game flow
 const modelId = 'gemini-3-flash-preview'; 
 
 export const generateCharacterName = async (species: string, characterClass: string, gender?: string): Promise<string[]> => {
   try {
     const client = getAiClient();
-    if (!client) return ["Hero (No AI Key)"];
+    if (!client) {
+        console.warn("Gemini API Key is missing. AI features disabled.");
+        return ["Hero (No AI)", "Adventurer", "Traveler", "Wanderer", "Stranger"];
+    }
 
     const prompt = `Generate 5 fantasy names for a D&D 2024 character.
     Species: ${species}
     Class: ${characterClass}
     ${gender ? `Gender: ${gender}` : ''}
     
-    Return only a JSON array of strings. Example: ["Name1", "Name2"]`;
+    Return ONLY a JSON array of strings. Do not include markdown code blocks or extra text.
+    Example: ["Name1", "Name2"]`;
 
     const response = await client.models.generateContent({
         model: modelId,
@@ -48,7 +51,9 @@ export const generateCharacterName = async (species: string, characterClass: str
 
     const text = response.text;
     if (text) {
-        return JSON.parse(text);
+        // Robust cleaning in case the model wraps JSON in markdown
+        const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        return JSON.parse(cleanText);
     }
     return [];
   } catch (error) {
@@ -73,7 +78,7 @@ export const generateBackstory = async (
     Class: ${charClass}
     Background: ${background}
     
-    Focus on their motivation for becoming an adventurer.`;
+    Focus on their motivation for becoming an adventurer. Return plain text.`;
 
     const response = await client.models.generateContent({
         model: modelId,
@@ -104,8 +109,9 @@ export const askDndRules = async (query: string): Promise<string> => {
         - Druids have Wild Resurgence.
         - Paladins use Lay on Hands as a Bonus Action.
         - Monks use Focus Points instead of Ki.
+        - Surprise is now a condition/initiative penalty, not a lost round.
 
-        Answer the following question based strictly on the 2024 ruleset. Keep it brief and helpful for a player mid-game.
+        Answer the following question based strictly on the 2024 ruleset. Keep it brief, formatted with Markdown, and helpful for a player mid-game.
         
         Question: ${query}`;
 
