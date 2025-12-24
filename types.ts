@@ -30,6 +30,14 @@ export interface Weapon {
   equipped: boolean;
 }
 
+export interface Armor {
+  baseAC: number;
+  type: 'Light' | 'Medium' | 'Heavy' | 'Shield';
+  stealthDisadvantage: boolean;
+  strengthReq: number;
+  maxDex?: number;
+}
+
 export interface SpellDetail {
     name: string;
     level: number;
@@ -45,6 +53,39 @@ export interface Note {
   id: string;
   title: string;
   content: string;
+}
+
+export interface Trait {
+  name: string;
+  description: string;
+}
+
+export interface DetailData {
+  name?: string;
+  description: string;
+  size?: 'Small' | 'Medium';
+  speed?: number;
+  traits: Trait[];
+}
+
+export interface BackgroundData {
+  description: string;
+  scores: Ability[];
+  feat: string;
+  featDescription: string;
+  skills: Skill[];
+  equipment: string[];
+}
+
+export interface SubclassFeature {
+    name: string;
+    description: string;
+}
+
+export interface SubclassData {
+  name: string;
+  description: string;
+  features: Record<number, SubclassFeature[]>;
 }
 
 export interface Character {

@@ -1,7 +1,8 @@
 
+
 import React, { useState, useEffect } from 'react';
-import { SPECIES_LIST, CLASS_LIST, BACKGROUNDS_DATA, STANDARD_ARRAY, ABILITY_NAMES, HIT_DIE, CLASS_FEATURES, CLASS_STAT_PRIORITIES, CLASS_DETAILS, SPECIES_DETAILS, DetailData, ALIGNMENTS, LANGUAGES, BackgroundData, CLASS_SKILL_DATA, SKILL_LIST, CLASS_SAVING_THROWS, SPELLCASTING_ABILITY } from '../constants';
-import { Character, AbilityScores, Ability, Weapon, Skill } from '../types';
+import { SPECIES_LIST, CLASS_LIST, BACKGROUNDS_DATA, STANDARD_ARRAY, ABILITY_NAMES, HIT_DIE, CLASS_FEATURES, CLASS_STAT_PRIORITIES, CLASS_DETAILS, SPECIES_DETAILS, ALIGNMENTS, LANGUAGES, CLASS_SKILL_DATA, SKILL_LIST, CLASS_SAVING_THROWS, SPELLCASTING_ABILITY } from '../constants';
+import { Character, AbilityScores, Ability, Weapon, Skill, DetailData, BackgroundData } from '../types';
 import { generateCharacterName, generateBackstory } from '../services/geminiService';
 import { ChevronRight, Save, Sparkles, Loader2, Wand2, X, Check, GraduationCap, Heart, Shield, Zap, Footprints, Ruler, Star, Medal, Sword, Crown, Scroll, Dna } from 'lucide-react';
 

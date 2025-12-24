@@ -1,3 +1,4 @@
+
 const CACHE_NAME = 'dnd-companion-v3';
 const urlsToCache = [
   './',
@@ -6,6 +7,11 @@ const urlsToCache = [
   './App.tsx',
   './types.ts',
   './constants.ts',
+  './data/skills.ts',
+  './data/items.ts',
+  './data/feats.ts',
+  './data/characterOptions.ts',
+  './data/spells.ts',
   './manifest.json',
   './services/geminiService.ts',
   './components/Dashboard.tsx',
