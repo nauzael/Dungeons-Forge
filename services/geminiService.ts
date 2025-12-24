@@ -1,16 +1,11 @@
 
-
-// FIX: Per guidelines, remove unused Schema import.
 import { GoogleGenAI, Type } from "@google/genai";
 
-// Initialize Gemini
-// FIX: Per guidelines, initialize with API key directly from process.env and remove helper function/checks.
 // The API key's availability is a hard requirement and is handled externally.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const modelId = 'gemini-3-flash-preview'; 
 
 export const generateCharacterName = async (species: string, characterClass: string, gender?: string): Promise<string[]> => {
-  // FIX: Per guidelines, assume API key is present and remove check.
   try {
     const prompt = `Generate 5 fantasy names for a D&D 2024 character.
     Species: ${species}
@@ -48,7 +43,6 @@ export const generateBackstory = async (
   charClass: string, 
   background: string
 ): Promise<string> => {
-  // FIX: Per guidelines, assume API key is present and remove check.
   try {
     const prompt = `Write a concise (max 150 words) but engaging backstory for a Dungeons & Dragons 2024 character.
     Name: ${name}
@@ -71,7 +65,6 @@ export const generateBackstory = async (
 };
 
 export const askDndRules = async (query: string): Promise<string> => {
-    // FIX: Per guidelines, assume API key is present and remove check.
     try {
         const prompt = `You are a Dungeon Master rules lawyer for D&D 2024 (5.5e/One D&D). 
         You have deep knowledge of the 2024 Player's Handbook.
@@ -97,7 +90,6 @@ export const askDndRules = async (query: string): Promise<string> => {
 
         return response.text || "I am unsure of that ruling.";
     } catch (error) {
-        // FIX: Add console.error for better error handling.
         console.error("Gemini Rules Ask Error:", error);
         return "The weave is disrupted. Try again later.";
     }
