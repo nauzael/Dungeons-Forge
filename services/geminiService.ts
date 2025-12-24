@@ -1,12 +1,32 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-// The API key's availability is a hard requirement and is handled externally.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Lazy initialization to prevent startup crashes if API_KEY is missing
+let ai: GoogleGenAI | null = null;
+
+const getAiClient = () => {
+    if (!ai) {
+        const key = process.env.API_KEY;
+        if (key) {
+            try {
+                ai = new GoogleGenAI({ apiKey: key });
+            } catch (e) {
+                console.error("Failed to initialize Gemini Client:", e);
+            }
+        } else {
+            console.warn("Gemini API Key is missing. AI features will be disabled.");
+        }
+    }
+    return ai;
+};
+
 const modelId = 'gemini-3-flash-preview'; 
 
 export const generateCharacterName = async (species: string, characterClass: string, gender?: string): Promise<string[]> => {
   try {
+    const client = getAiClient();
+    if (!client) return ["Hero (No AI Key)"];
+
     const prompt = `Generate 5 fantasy names for a D&D 2024 character.
     Species: ${species}
     Class: ${characterClass}
@@ -14,7 +34,7 @@ export const generateCharacterName = async (species: string, characterClass: str
     
     Return only a JSON array of strings. Example: ["Name1", "Name2"]`;
 
-    const response = await ai.models.generateContent({
+    const response = await client.models.generateContent({
         model: modelId,
         contents: prompt,
         config: {
@@ -44,6 +64,9 @@ export const generateBackstory = async (
   background: string
 ): Promise<string> => {
   try {
+    const client = getAiClient();
+    if (!client) return "AI Configuration Missing. Cannot generate backstory.";
+
     const prompt = `Write a concise (max 150 words) but engaging backstory for a Dungeons & Dragons 2024 character.
     Name: ${name}
     Species: ${species}
@@ -52,7 +75,7 @@ export const generateBackstory = async (
     
     Focus on their motivation for becoming an adventurer.`;
 
-    const response = await ai.models.generateContent({
+    const response = await client.models.generateContent({
         model: modelId,
         contents: prompt,
     });
@@ -66,6 +89,9 @@ export const generateBackstory = async (
 
 export const askDndRules = async (query: string): Promise<string> => {
     try {
+        const client = getAiClient();
+        if (!client) return "I cannot consult the rules without my API Key configuration.";
+
         const prompt = `You are a Dungeon Master rules lawyer for D&D 2024 (5.5e/One D&D). 
         You have deep knowledge of the 2024 Player's Handbook.
         
@@ -83,7 +109,7 @@ export const askDndRules = async (query: string): Promise<string> => {
         
         Question: ${query}`;
 
-        const response = await ai.models.generateContent({
+        const response = await client.models.generateContent({
             model: modelId,
             contents: prompt,
         });

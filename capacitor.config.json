@@ -1,0 +1,12 @@
+
+{
+  "appId": "com.dnd2024.companion",
+  "appName": "D&D 2024 Companion",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  }
+}
