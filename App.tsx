@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import Dashboard from './components/Dashboard';
 import CharacterCreator from './components/CharacterCreator';
@@ -10,14 +11,28 @@ const App: React.FC = () => {
     const [characters, setCharacters] = useState<Character[]>([]);
     const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
 
-    // Load from local storage
+    // Load from local storage and migrate old data structure
     useEffect(() => {
         const saved = localStorage.getItem('dnd2024_characters');
         if (saved) {
             try {
-                setCharacters(JSON.parse(saved));
+                const loadedChars = JSON.parse(saved);
+                const migratedChars = loadedChars.map((char: any) => {
+                    if (char.backstory && !char.notes) {
+                        return {
+                            ...char,
+                            notes: [{ id: crypto.randomUUID(), title: 'Character Backstory', content: char.backstory }],
+                            backstory: undefined, // remove old property
+                        };
+                    }
+                    if (!char.notes) {
+                      char.notes = [];
+                    }
+                    return char;
+                });
+                setCharacters(migratedChars);
             } catch (e) {
-                console.error("Failed to load characters", e);
+                console.error("Failed to load or migrate characters", e);
             }
         }
     }, []);

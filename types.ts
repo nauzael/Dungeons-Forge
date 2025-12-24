@@ -41,6 +41,12 @@ export interface SpellDetail {
     description: string;
 }
 
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+}
+
 export interface Character {
   id: string;
   name: string;
@@ -62,7 +68,7 @@ export interface Character {
   languages: string[]; // New 2024
   weapons: Weapon[];
   equipment: string[]; // General gear
-  backstory: string;
+  notes: Note[];
   features: string[]; // Class features
   originFeat?: string; // New 2024 Rule
   currentFocusPoints?: number; // Monk Resource

@@ -1,10 +1,69 @@
 
 
 import { Ability, Skill, Weapon, MasteryProperty, SpellDetail } from './types';
-import { SPELL_DETAILS } from './spells';
+import { SPELL_DETAILS_PART1 } from './spells';
+import { SPELL_DETAILS_PART2 } from './spells_part2';
 
-// Fix: Re-export SPELL_DETAILS to make it available to other components.
-export { SPELL_DETAILS };
+// FIX: Combine spell parts and export SPELL_DETAILS to make it available to other components.
+export const SPELL_DETAILS: Record<string, SpellDetail> = {
+  ...SPELL_DETAILS_PART1,
+  ...SPELL_DETAILS_PART2,
+};
+
+// Generate a spell list grouped by level from the main SPELL_DETAILS object.
+export const SAMPLE_SPELLS_BY_LEVEL: Record<string, string[]> = Object.values(SPELL_DETAILS)
+  .reduce((acc: Record<string, string[]>, spell) => {
+    const level = spell.level.toString();
+    if (!acc[level]) {
+        acc[level] = [];
+    }
+    acc[level].push(spell.name);
+    return acc;
+}, {});
+
+// Sort spell names alphabetically within each level
+for (const level in SAMPLE_SPELLS_BY_LEVEL) {
+    SAMPLE_SPELLS_BY_LEVEL[level].sort();
+}
+
+// --- NEW SPELL LIST CONSTANTS ---
+
+export const ARCANE_SPELLS = ['Acid Splash', 'Blade Ward', 'Chill Touch', 'Dancing Lights', 'Fire Bolt', 'Friends', 'Light', 'Mage Hand', 'Mending', 'Message', 'Minor Illusion', 'Poison Spray', 'Prestidigitation', 'Ray of Frost', 'Shocking Grasp', 'True Strike', 'Alarm', 'Burning Hands', 'Charm Person', 'Chromatic Orb', 'Color Spray', 'Comprehend Languages', 'Detect Magic', 'Disguise Self', 'Feather Fall', 'Find Familiar', 'Fog Cloud', 'Grease', 'Ice Knife', 'Illusory Script', 'Jump', 'Longstrider', 'Mage Armor', 'Magic Missile', 'Shield', 'Silent Image', 'Sleep', 'Tenser\'s Floating Disk', 'Unseen Servant', 'Witch Bolt', 'Alter Self', 'Arcane Lock', 'Blur', 'Cloud of Daggers', 'Continual Flame', 'Crown of Madness', 'Darkness', 'Darkvision', 'Detect Thoughts', 'Enlarge/Reduce', 'Flaming Sphere', 'Gust of Wind', 'Hold Person', 'Invisibility', 'Knock', 'Levitate', 'Magic Mouth', 'Magic Weapon', 'Melf\'s Acid Arrow', 'Mind Spike', 'Mirror Image', 'Misty Step', 'Nystul\'s Magic Aura', 'Phantasmal Force', 'Ray of Enfeeblement', 'Rope Trick', 'Scorching Ray', 'See Invisibility', 'Shatter', 'Silence', 'Spider Climb', 'Suggestion', 'Web', 'Blink', 'Clairvoyance', 'Counterspell', 'Dispel Magic', 'Fear', 'Fireball', 'Fly', 'Gaseous Form', 'Glyph of Warding', 'Haste', 'Hypnotic Pattern', 'Leomund\'s Tiny Hut', 'Lightning Bolt', 'Magic Circle', 'Major Image', 'Nondetection', 'Phantom Steed', 'Sending', 'Slow', 'Stinking Cloud', 'Tongues', 'Vampiric Touch', 'Water Breathing', 'Arcane Eye', 'Banishment', 'Charm Monster', 'Confusion', 'Dimension Door', 'Fabricate', 'Fire Shield', 'Greater Invisibility', 'Hallucinatory Terrain', 'Ice Storm', 'Leomund\'s Secret Chest', 'Locate Creature', 'Mordenkainen\'s Faithful Hound', 'Mordenkainen\'s Private Sanctum', 'Otiluke\'s Resilient Sphere', 'Phantasmal Killer', 'Polymorph', 'Stone Shape', 'Stoneskin', 'Vitriolic Sphere', 'Wall of Fire', 'Animate Objects', 'Bigby\'s Hand', 'Cloudkill', 'Cone of Cold', 'Contact Other Plane', 'Creation', 'Arcane Gate', 'Chain Lightning', 'Circle of Death', 'Contingency', 'Disintegrate', 'Eyebite', 'Globe of Invulnerability', 'Magic Jar', 'Mass Suggestion', 'Move Earth', 'Otto\'s Irresistible Dance', 'Programmed Illusion', 'Sunbeam', 'True Seeing', 'Wall of Ice', 'Wish'];
+export const DIVINE_SPELLS = ['Guidance', 'Light', 'Resistance', 'Sacred Flame', 'Spare the Dying', 'Thaumaturgy', 'Word of Radiance', 'Bane', 'Bless', 'Command', 'Cure Wounds', 'Detect Evil and Good', 'Detect Magic', 'Detect Poison and Disease', 'Guiding Bolt', 'Healing Word', 'Inflict Wounds', 'Protection from Evil and Good', 'Purify Food and Drink', 'Sanctuary', 'Shield of Faith', 'Aid', 'Augury', 'Blindness/Deafness', 'Calm Emotions', 'Continual Flame', 'Enhance Ability', 'Find Traps', 'Gentle Repose', 'Hold Person', 'Lesser Restoration', 'Locate Object', 'Prayer of Healing', 'Protection from Poison', 'Silence', 'Spiritual Weapon', 'Warding Bond', 'Zone of Truth', 'Animate Dead', 'Beacon of Hope', 'Bestow Curse', 'Clairvoyance', 'Create Food and Water', 'Daylight', 'Dispel Magic', 'Feign Death', 'Glyph of Warding', 'Magic Circle', 'Mass Healing Word', 'Meld into Stone', 'Protection from Energy', 'Remove Curse', 'Revivify', 'Sending', 'Speak with Dead', 'Spirit Guardians', 'Tongues', 'Water Walk', 'Banishment', 'Control Water', 'Death Ward', 'Divination', 'Freedom of Movement', 'Guardian of Faith', 'Locate Creature', 'Stone Shape', 'Aura of Life', 'Aura of Purity', 'Commune', 'Contagion', 'Circle of Power', 'Blade Barrier', 'Create Undead', 'Forbiddance', 'Harm', 'Heal', 'Heroes\' Feast', 'Planar Ally', 'True Seeing', 'Word of Recall', 'Wish'];
+export const PRIMAL_SPELLS = ['Blade Ward', 'Druidcraft', 'Guidance', 'Poison Spray', 'Produce Flame', 'Resistance', 'Shillelagh', 'Thorn Whip', 'Animal Friendship', 'Beast Bond', 'Cure Wounds', 'Detect Magic', 'Detect Poison and Disease', 'Entangle', 'Faerie Fire', 'Fog Cloud', 'Goodberry', 'Healing Word', 'Jump', 'Longstrider', 'Speak with Animals', 'Thunderwave', 'Animal Messenger', 'Barkskin', 'Beast Sense', 'Darkvision', 'Enhance Ability', 'Find Traps', 'Flame Blade', 'Flaming Sphere', 'Gust of Wind', 'Heat Metal', 'Hold Person', 'Lesser Restoration', 'Locate Animals or Plants', 'Locate Object', 'Moonbeam', 'Pass Without Trace', 'Protection from Poison', 'Spike Growth', 'Call Lightning', 'Conjure Animals', 'Daylight', 'Dispel Magic', 'Meld into Stone', 'Plant Growth', 'Protection from Energy', 'Sleet Storm', 'Speak with Plants', 'Water Breathing', 'Water Walk', 'Wind Wall', 'Blight', 'Charm Monster', 'Confusion', 'Conjure Minor Elementals', 'Conjure Woodland Beings', 'Control Water', 'Dominate Beast', 'Freedom of Movement', 'Grasping Vine', 'Hallucinatory Terrain', 'Ice Storm', 'Locate Creature', 'Polymorph', 'Stone Shape', 'Stoneskin', 'Wall of Fire', 'Commune with Nature', 'Cone of Cold', 'Conjure Elemental', 'Contagion', 'Awaken', 'Conjure Fey', 'Find the Path', 'Heal', 'Heroes\' Feast', 'Move Earth', 'Sunbeam', 'Transport via Plants', 'Wall of Thorns', 'Wind Walk'];
+
+export const SPELL_LIST_BY_CLASS: Record<string, string[]> = {
+    'Bard': ARCANE_SPELLS,
+    'Cleric': DIVINE_SPELLS,
+    'Druid': PRIMAL_SPELLS,
+    'Paladin': DIVINE_SPELLS,
+    'Ranger': PRIMAL_SPELLS,
+    'Sorcerer': ARCANE_SPELLS,
+    'Warlock': ARCANE_SPELLS,
+    'Wizard': ARCANE_SPELLS,
+};
+
+// Based on 2024 PHB progression
+export const CANTRIPS_KNOWN_BY_LEVEL: Record<string, Record<number, number>> = {
+    'Bard': { 1: 2, 4: 3, 10: 4},
+    'Cleric': { 1: 3, 4: 4, 10: 5},
+    'Druid': { 1: 2, 4: 3, 10: 4},
+    'Sorcerer': { 1: 4, 4: 5, 10: 6},
+    'Warlock': { 1: 2, 4: 3, 10: 4},
+    'Wizard': { 1: 3, 4: 4, 10: 5},
+};
+
+// For Known Casters only. Prepared casters calculate this differently.
+export const SPELLS_KNOWN_BY_LEVEL: Record<string, Record<number, number>> = {
+    'Bard': { 1: 4, 2: 5, 3: 6, 4: 7, 5: 8, 6: 9, 7: 10, 8: 11, 9: 12, 10: 13, 11: 14, 12: 14, 13: 15, 14: 15, 15: 16, 16: 16, 17: 17, 18: 17, 19: 18, 20: 18 },
+    'Ranger': { 1: 0, 2: 2, 3: 3, 4: 3, 5: 4, 6: 4, 7: 5, 8: 5, 9: 6, 10: 6, 11: 7, 12: 7, 13: 8, 14: 8, 15: 9, 16: 9, 17: 10, 18: 10, 19: 11, 20: 11 },
+    'Sorcerer': { 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7, 7: 8, 8: 9, 9: 10, 10: 11, 11: 12, 12: 12, 13: 13, 14: 13, 15: 14, 16: 14, 17: 15, 18: 15, 19: 15, 20: 15 },
+    'Warlock': { 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7, 7: 8, 8: 9, 9: 10, 10: 10, 11: 11, 12: 11, 13: 12, 14: 12, 15: 13, 16: 13, 17: 14, 18: 14, 19: 15, 20: 15 }
+};
+
+export const PREPARED_CASTERS = ['Cleric', 'Druid', 'Paladin', 'Wizard'];
+
+// --- END NEW SPELL LIST CONSTANTS ---
 
 export const SPECIES_LIST = [
   'Human', 'Elf', 'Dwarf', 'Halfling', 'Dragonborn', 'Gnome', 'Orc', 'Tiefling', 'Aasimar', 'Goliath'
@@ -174,7 +233,7 @@ export const CLASS_DETAILS: Record<string, DetailData> = {
   'Druid': { name: 'Druid', description: 'A priest of the Old Faith, wielding the powers of nature.', traits: [{ name: 'Spellcasting', description: 'Prepare Primal spells. Wisdom is your casting ability.' }, { name: 'Druidic', description: 'You know the secret language of Druids.' }, { name: 'Primal Order', description: 'Choose Magician (Extra Cantrip + Arcana/Nature) or Warden (Medium Armor + Martial Weapons).' }] },
   'Fighter': { name: 'Fighter', description: 'A master of martial combat, skilled with a variety of weapons.', traits: [{ name: 'Fighting Style', description: 'Adopt a style like Archery, Defense, or Great Weapon Fighting.' }, { name: 'Second Wind', description: 'Bonus Action to regain HP (1d10 + level). Uses vary by level.' }, { name: 'Weapon Mastery', description: 'Master 3 weapons to use their tactical properties.' }] },
   'Monk': { name: 'Monk', description: 'A master of martial arts, harnessing body and spirit.', traits: [{ name: 'Martial Arts', description: 'Use DEX instead of STR for Monk weapons/unarmed. Bonus Action unarmed strike.' }, { name: 'Unarmored Defense', description: 'AC equals 10 + DEX mod + WIS mod.' }] },
-  'Paladin': { name: 'Paladin', description: 'A holy warrior bound to a sacred oath.', traits: [{ name: 'Lay on Hands', description: 'Bonus Action to heal creatures from a pool of HP.' }, { name: 'Spellcasting', description: 'Prepare Divine spells. You can change them after a Long Rest.' }, { name: 'Weapon Mastery', description: 'Master 2 weapons to use their tactical properties.' }] },
+  'Paladin': { name: 'Paladin', description: 'A holy warrior bound to a sacred oath.', traits: [{ name: 'Lay On Hands', description: 'Bonus Action to heal creatures from a pool of HP.' }, { name: 'Spellcasting', description: 'Prepare Divine spells. You can change them after a Long Rest.' }, { name: 'Weapon Mastery', description: 'Master 2 weapons to use their tactical properties.' }] },
   'Ranger': { name: 'Ranger', description: 'A warrior who combats threats on the edges of civilization.', traits: [{ name: 'Spellcasting', description: 'Prepare Primal spells. Wisdom is your casting ability.' }, { name: 'Favored Enemy', description: 'You always have Hunter\'s Mark prepared. Cast it without a slot (limited use).' }, { name: 'Weapon Mastery', description: 'Master 2 weapons to use their tactical properties.' }] },
   'Rogue': { name: 'Rogue', description: 'A scoundrel who uses stealth and trickery.', traits: [{ name: 'Expertise', description: 'Double proficiency bonus in two chosen skills.' }, { name: 'Sneak Attack', description: 'Deal extra damage (1d6) once per turn if you have Advantage or an ally nearby.' }, { name: 'Weapon Mastery', description: 'Master 2 weapons to use their tactical properties.' }, { name: 'Thieves\' Cant', description: 'A secret mix of dialect, jargon, and code.' }] },
   'Sorcerer': { name: 'Sorcerer', description: 'A spellcaster who draws on inherent magic.', traits: [{ name: 'Spellcasting', description: 'Cast Arcane spells spontaneously. Charisma is your casting ability.' }, { name: 'Innate Sorcery', description: 'Bonus Action to activate a rage-like state increasing spell DC and attack advantage.' }] },
@@ -187,8 +246,8 @@ export const GENERIC_FEATURES: Record<string, string> = {
   'Reckless Attack': 'When you make your first attack on your turn, you can decide to attack recklessly. You have advantage on melee weapon attack rolls using Strength during this turn, but attack rolls against you have advantage until your next turn.', 'Danger Sense': 'You have advantage on Dexterity saving throws against effects that you can see, such as traps and spells.', 'Fighting Style': 'You adopt a particular style of fighting as your specialty (e.g., Archery, Defense, Dueling).', 'Deft Explorer': 'You are an unsurpassed explorer and survivor.', 'Step of the Wind': 'You can spend a Focus Point to take the Disengage or Dash action as a Bonus Action, and your jump distance is doubled for the turn.',
   'Patient Defense': 'You can spend a Focus Point to take the Dodge action as a Bonus Action.', 'Uncanny Metabolism': 'When you roll Initiative, you can regain all expended Focus Points. Once per Long Rest.', 'Destroy Undead': 'When an undead fails its saving throw against your Turn Undead feature, the creature is instantly destroyed if its Challenge Rating is at or below a certain threshold.', 'Wild Resurgence': 'You can expend a spell slot to regain a use of Wild Shape, or expend a Wild Shape use to regain a spell slot.', 'Uncanny Dodge': 'When an attacker that you can see hits you with an attack, you can use your reaction to halve the attack\'s damage against you.', 'Sorcerous Restoration': 'You regain Sorcery Points whenever you finish a Short Rest or Long Rest.',
   'Eldritch Invocation': 'In your study of occult lore, you have unearthed Eldritch Invocations, fragments of forbidden knowledge that imbue you with an abiding magical ability.', 'Arcane Recovery': 'Once per day when you finish a Short Rest, you can choose expended spell slots to recover.', 'Tactical Mind': 'When you fail an ability check, you can expend a use of Second Wind to add 1d10 to the roll.', 'Ability Score Improvement': 'You can increase one Ability Score by 2, or two Ability Scores by 1. Alternatively, you can take a Feat.', 'Tactical Shift': 'Whenever you activate your Second Wind with a Bonus Action, you can move up to half your Speed without provoking Opportunity Attacks.', 'Primal Knowledge': 'Gain proficiency in another skill. While Raging, use Strength for Acrobatics, Intimidation, Perception, Stealth, or Survival checks.',
-  'Instinctive Pounce': 'As part of the Bonus Action to enter Rage, you can move up to half your Speed.', 'Magical Cunning': 'Perform a 1-minute rite to regain expended Pact Magic spell slots (up to half max). Once per Long Rest.', 'Memorize Spell': 'Whenever you finish a Short Rest, you can study your spellbook and replace one prepared level 1+ spell.', 'Scholar': 'You have Expertise in one of the following skills: Arcana, History, Investigation, Medicine, Nature, or Religion.', 'Metamagic': 'You gain the ability to twist your spells to suit your needs.', 'Font of Magic': 'You can tap into the wellspring of magic within yourself, represented by Sorcery Points.', 'Innate Sorcery': 'Bonus Action to increase spell Save DC by 1 and gain Advantage on Sorcerer spell attacks for 1 minute.', 'Cunning Strike': 'Trade Sneak Attack damage dice for special effects like Poison (1d6), Trip (1d6), or Withdraw (1d6).', 'Steady Aim': 'Bonus Action to give yourself Advantage on next attack roll. Speed becomes 0.', 'Roving': 'Speed increases by 10 ft. Gain Climb and Swim speeds equal to Speed.', 'Tireless': 'Action to gain Temp HP. Reduce Exhaustion on Short Rest.', 'Nature\'s Veil': 'Bonus Action to become Invisible until the end of your next turn.',
-  'Paladin\'s Smite': 'You always have Divine Smite prepared. Cast it once without a spell slot per Long Rest.', 'Faithful Steed': 'You always have Find Steed prepared. Cast it once without a spell slot per Long Rest.', 'Abjure Foes': 'Channel Divinity to Frighten foes and restrict their actions.', 'Monk\'s Focus': 'You have a pool of Focus Points to fuel your monk features.', 'Deflect Attacks': 'Reaction to reduce damage from melee or ranged attacks. Spend Focus to redirect.', 'Divine Order': 'Choose Protector (Heavy Armor/Martial Weapons) or Thaumaturge (Extra Cantrip/Skill Bonus).', 'Sear Undead': 'Turn Undead deals Radiant damage.', 'Blessed Strikes': 'Choose Divine Strike (extra damage) or Potent Spellcasting (cantrip damage).', 'Divine Intervention': 'As a Magic Action, cast any Cleric spell of level 5 or lower without a slot.',
+  'Instinctive Pounce': 'As part of the Bonus Action to enter Rage, you can move up to half your Speed.', 'Magical Cunning': 'Perform a 1-minute rite to regain expended Pact Magic spell slots (up to half max). Once per Long Rest.', 'Memorize Spell': 'Whenever you finish a Short Rest, you can study your spellbook and replace one prepared level 1+ spell.', 'Scholar': 'You have Expertise in one of the following skills: Arcana, History, Investigation, Medicine, Nature, or Religion.', 'Metamagic': 'You gain the ability to twist your spells to suit your needs.', 'Font of Magic': 'You can tap into the wellspring of magic within yourself, represented by Sorcery Points.', 'Innate Sorcery': 'Bonus Action to activate a rage-like state increasing spell DC and gain Advantage on Sorcerer spell attacks for 1 minute.', 'Cunning Strike': 'Trade Sneak Attack damage dice for special effects like Poison (1d6), Trip (1d6), or Withdraw (1d6).', 'Steady Aim': 'Bonus Action to give yourself Advantage on next attack roll. Speed becomes 0.', 'Roving': 'Speed increases by 10 ft. Gain Climb and Swim speeds equal to Speed.', 'Tireless': 'Action to gain Temp HP. Reduce Exhaustion on Short Rest.', 'Nature\'s Veil': 'Bonus Action to become Invisible until the end of your next turn.',
+  'Paladin\'s Smite': 'You always have Divine Smite prepared. Cast it once without a slot per Long Rest.', 'Faithful Steed': 'You always have Find Steed prepared. Cast it once without a slot per Long Rest.', 'Abjure Foes': 'Channel Divinity to Frighten foes and restrict their actions.', 'Monk\'s Focus': 'You have a pool of Focus Points to fuel your monk features.', 'Deflect Attacks': 'Reaction to reduce damage from melee or ranged attacks. Spend Focus to redirect.', 'Divine Order': 'Choose Protector (Heavy Armor/Martial Weapons) or Thaumaturge (Extra Cantrip/Skill Bonus).', 'Sear Undead': 'Turn Undead deals Radiant damage.', 'Blessed Strikes': 'Choose Divine Strike (extra damage) or Potent Spellcasting (cantrip damage).', 'Divine Intervention': 'As a Magic Action, cast any Cleric spell of level 5 or lower without a slot.',
   'Magical Secrets': 'Choose prepared spells from the Cleric, Druid, or Wizard spell lists.', 'Words of Creation': 'You always have Power Word Heal and Power Word Kill prepared.', 'Primal Order': 'Choose Magician (Extra Cantrip/Skill Bonus) or Warden (Medium Armor/Martial Weapons).', 'Elemental Fury': 'Choose Potent Spellcasting (cantrip damage) or Primal Strike (weapon elemental damage).', 'Tactical Master': 'When you attack with a weapon whose mastery property you can use, you can replace that property with Push, Sap, or Slow.', 'Studied Attacks': 'If you make an attack roll against a creature and miss, you have Advantage on your next attack roll against that creature.', 'Brutal Strike': 'If you use Reckless Attack, you can forgo Advantage to deal extra 1d10 damage and apply an effect like Forceful Blow or Hamstring Blow.',
   'Relentless Hunter': 'Taking damage can\'t break your Concentration on Hunter\'s Mark.', 'Deflect Energy': 'You can now use Deflect Attacks against attacks that deal any damage type, not just B/P/S.', 'Contact Patron': 'You always have Contact Other Plane prepared and can cast it without a slot once per Long Rest (success guaranteed).', 'Mystic Arcanum': 'Choose a high-level spell (6th, 7th, 8th, or 9th) to cast once per Long Rest without a slot.', 'Eldritch Master': 'When you use Magical Cunning, you regain all expended Pact Magic spell slots.'
 };
@@ -260,18 +319,3 @@ export const getLevelData = (className: string, level: number): { features: stri
     const subclass = level === 3;
     return { features, asi, subclass };
 };
-
-const spellsByLevel: Record<string, string[]> = {};
-for (const spellName in SPELL_DETAILS) {
-    const spell = SPELL_DETAILS[spellName];
-    const level = spell.level.toString();
-    if (!spellsByLevel[level]) {
-        spellsByLevel[level] = [];
-    }
-    spellsByLevel[level].push(spellName);
-}
-for (const level in spellsByLevel) {
-    spellsByLevel[level].sort();
-}
-export const SAMPLE_SPELLS_BY_LEVEL = spellsByLevel;
-export const SAMPLE_SPELLS = Object.values(spellsByLevel).flat();

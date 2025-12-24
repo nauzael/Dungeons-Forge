@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { SPECIES_LIST, CLASS_LIST, BACKGROUNDS_DATA, STANDARD_ARRAY, ABILITY_NAMES, HIT_DIE, CLASS_FEATURES, CLASS_STAT_PRIORITIES, CLASS_DETAILS, SPECIES_DETAILS, DetailData, ALIGNMENTS, LANGUAGES, BackgroundData, CLASS_SKILL_DATA, SKILL_LIST, CLASS_SAVING_THROWS } from '../constants';
+import { SPECIES_LIST, CLASS_LIST, BACKGROUNDS_DATA, STANDARD_ARRAY, ABILITY_NAMES, HIT_DIE, CLASS_FEATURES, CLASS_STAT_PRIORITIES, CLASS_DETAILS, SPECIES_DETAILS, DetailData, ALIGNMENTS, LANGUAGES, BackgroundData, CLASS_SKILL_DATA, SKILL_LIST, CLASS_SAVING_THROWS, SPELLCASTING_ABILITY } from '../constants';
 import { Character, AbilityScores, Ability, Weapon, Skill } from '../types';
 import { generateCharacterName, generateBackstory } from '../services/geminiService';
 import { ChevronRight, Save, Sparkles, Loader2, Wand2, X, Check, GraduationCap, Heart, Shield, Zap, Footprints, Ruler, Star, Medal, Sword, Crown, Scroll, Dna } from 'lucide-react';
@@ -161,7 +162,7 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
     const [charClass, setCharClass] = useState(CLASS_LIST[0]);
     const [background, setBackground] = useState(Object.keys(BACKGROUNDS_DATA)[0]);
     const [scores, setScores] = useState<AbilityScores>({ STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 });
-    const [backstory, setBackstory] = useState('');
+    const [initialNote, setInitialNote] = useState('');
     const [suggestedNames, setSuggestedNames] = useState<string[]>([]);
     
     // Details State (Step 3)
@@ -206,7 +207,7 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
     const handleGenerateBackstory = async () => {
         setIsLoadingAI(true);
         const story = await generateBackstory(name, species, charClass, background);
-        setBackstory(story);
+        setInitialNote(story);
         setIsLoadingAI(false);
     };
 
@@ -305,6 +306,7 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
         
         // Combine Skills
         const finalSkills = [...currentBackgroundData.skills, ...selectedClassSkills];
+        const spellcastingAbility = SPELLCASTING_ABILITY[charClass];
 
         const newCharacter: Character = {
             id: crypto.randomUUID(),
@@ -327,10 +329,15 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
             weapons: finalWeapons,
             equipment: finalEquipment, 
             languages,
-            backstory,
+            notes: initialNote ? [{ id: crypto.randomUUID(), title: 'Character Backstory', content: initialNote }] : [],
             features: CLASS_FEATURES[charClass] || [],
             originFeat: currentBackgroundData.feat,
-            currentFocusPoints: charClass === 'Monk' ? 1 : undefined
+            currentFocusPoints: charClass === 'Monk' ? 1 : undefined,
+            spellcasting: spellcastingAbility ? {
+                ability: spellcastingAbility,
+                slots: {},
+                known: [],
+            } : undefined,
         };
         onSave(newCharacter);
     };
@@ -533,7 +540,7 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
                     </div>
                 )}
 
-                {/* Step 3: Details (Alignment, Languages, Backstory) */}
+                {/* Step 3: Details (Alignment, Languages, Notes) */}
                 {step === 3 && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -565,24 +572,24 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
                             </div>
                         </div>
 
-                        {/* Backstory */}
+                        {/* Notes */}
                         <div>
                             <div className="flex justify-between items-center mb-2">
-                                 <label className="text-stone-400 font-bold uppercase text-xs tracking-wider">Backstory</label>
+                                 <label className="text-stone-400 font-bold uppercase text-xs tracking-wider">Notes</label>
                                  <button 
                                     onClick={handleGenerateBackstory}
                                     disabled={isLoadingAI || !name}
                                     className="text-indigo-400 hover:text-indigo-300 text-xs flex items-center gap-1.5 transition-colors font-bold disabled:opacity-50"
                                 >
                                     {isLoadingAI ? <Loader2 className="animate-spin" size={14}/> : <Sparkles size={14}/>}
-                                    Generate with Gemini
+                                    Generate Backstory
                                 </button>
                             </div>
                             <textarea 
                                 className="w-full h-64 bg-stone-950 border border-stone-800 text-stone-300 rounded-xl p-5 text-lg leading-relaxed focus:ring-1 focus:ring-amber-600 focus:outline-none"
                                 placeholder="Once upon a time..."
-                                value={backstory}
-                                onChange={(e) => setBackstory(e.target.value)}
+                                value={initialNote}
+                                onChange={(e) => setInitialNote(e.target.value)}
                             />
                         </div>
                     </div>

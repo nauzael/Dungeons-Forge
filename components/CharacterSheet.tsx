@@ -1,10 +1,15 @@
 
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Character, Ability, Weapon, Skill } from '../types';
-import { Shield, Heart, Zap, Scroll, Swords, Backpack, ArrowLeft, BotMessageSquare, Sparkles, BookOpen, X, User, MessageCircle, Plus, Trash2, Settings, AlertCircle, ChevronsUp, Crown, ArrowRight, Check, Flame, Minus, RefreshCw, Dna, Star, GraduationCap, Skull, ChevronDown } from 'lucide-react';
+import { Character, Ability, Weapon, Skill, Note } from '../types';
+import { Shield, Heart, Zap, Scroll, Swords, Backpack, ArrowLeft, BotMessageSquare, Sparkles, BookOpen, X, User, MessageCircle, Plus, Trash2, Settings, AlertCircle, ChevronsUp, Crown, ArrowRight, Check, Flame, Minus, RefreshCw, Dna, Star, GraduationCap, Skull, ChevronDown, PenSquare, Notebook } from 'lucide-react';
 import { askDndRules } from '../services/geminiService';
-import { MASTERY_DESCRIPTIONS, ALL_WEAPONS, ARMOR_OPTIONS, HIT_DIE, getLevelData, SUBCLASS_OPTIONS, FEAT_OPTIONS, ABILITY_NAMES, GENERIC_FEATURES, SPECIES_DETAILS, CLASS_DETAILS, BACKGROUNDS_DATA, SKILL_LIST, SKILL_ABILITY_MAP, CLASS_SAVING_THROWS, SAMPLE_SPELLS_BY_LEVEL, SPELLCASTING_ABILITY, CASTER_TYPE, MAX_SPELL_LEVEL, SPELL_DETAILS } from '../constants';
+import { 
+    MASTERY_DESCRIPTIONS, ALL_WEAPONS, ARMOR_OPTIONS, HIT_DIE, getLevelData, SUBCLASS_OPTIONS, 
+    FEAT_OPTIONS, ABILITY_NAMES, GENERIC_FEATURES, SPECIES_DETAILS, CLASS_DETAILS, BACKGROUNDS_DATA, 
+    SKILL_LIST, SKILL_ABILITY_MAP, CLASS_SAVING_THROWS, SPELLCASTING_ABILITY, 
+    CASTER_TYPE, MAX_SPELL_LEVEL, SPELL_DETAILS, SPELL_LIST_BY_CLASS, CANTRIPS_KNOWN_BY_LEVEL, 
+    SPELLS_KNOWN_BY_LEVEL, PREPARED_CASTERS 
+} from '../constants';
 
 interface CharacterSheetProps {
     character: Character;
@@ -43,6 +48,8 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
     const [searchTerm, setSearchTerm] = useState('');
     const [spellSearchTerm, setSpellSearchTerm] = useState('');
     const [customSpellName, setCustomSpellName] = useState('');
+    const [showNoteModal, setShowNoteModal] = useState(false);
+    const [editingNote, setEditingNote] = useState<Note | null>(null);
 
     // Level Up State (Wizard)
     const [levelUpStep, setLevelUpStep] = useState(1);
@@ -161,18 +168,14 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
         if (!character.spellcasting?.known) return grouped;
 
         for (const spellName of character.spellcasting.known) {
-            let found = false;
-            for (const level in SAMPLE_SPELLS_BY_LEVEL) {
-                if (SAMPLE_SPELLS_BY_LEVEL[level].includes(spellName)) {
-                    if (!grouped[level]) {
-                        grouped[level] = [];
-                    }
-                    grouped[level].push(spellName);
-                    found = true;
-                    break;
+            const detail = SPELL_DETAILS[spellName];
+            if (detail) {
+                const level = detail.level.toString();
+                if (!grouped[level]) {
+                    grouped[level] = [];
                 }
-            }
-            if (!found) { // Handle custom spells
+                grouped[level].push(spellName);
+            } else { // Handle custom spells
                  if (!grouped['custom']) {
                      grouped['custom'] = [];
                  }
@@ -181,22 +184,60 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
         }
         return grouped;
     }, [character.spellcasting?.known]);
+
+    const maxCantrips = useMemo(() => {
+        const cantripMap = CANTRIPS_KNOWN_BY_LEVEL[character.class];
+        if (!cantripMap) return 0;
+        const applicableLevel = Object.keys(cantripMap)
+            .map(Number)
+            .sort((a, b) => b - a)
+            .find(lvl => lvl <= character.level);
+        return applicableLevel ? cantripMap[applicableLevel] : 0;
+    }, [character.class, character.level]);
+
+    const maxLeveledSpells = useMemo(() => {
+        if (PREPARED_CASTERS.includes(character.class)) {
+            return Math.max(1, character.level + spellcastingModifier);
+        }
+        const spellsMap = SPELLS_KNOWN_BY_LEVEL[character.class];
+        if (!spellsMap) return 0;
+        return spellsMap[character.level] || 0;
+    }, [character.class, character.level, spellcastingModifier]);
+
+    const currentCantripsCount = useMemo(() => (knownSpellsByLevel['0'] || []).length, [knownSpellsByLevel]);
+
+    const currentLeveledSpellsCount = useMemo(() => {
+        return Object.keys(knownSpellsByLevel)
+            .filter(level => level !== '0' && level !== 'custom')
+            .reduce((total, level) => total + knownSpellsByLevel[level].length, 0);
+    }, [knownSpellsByLevel]);
     
     const availableSpellsForModal = useMemo(() => {
-        const spells: Record<string, string[]> = {};
-        for (let i = 0; i <= maxSpellLevel; i++) {
-            const levelStr = i.toString();
-            if (SAMPLE_SPELLS_BY_LEVEL[levelStr]) {
-                const filtered = SAMPLE_SPELLS_BY_LEVEL[levelStr].filter(s => 
-                    s.toLowerCase().includes(spellSearchTerm.toLowerCase())
-                );
-                if (filtered.length > 0) {
-                    spells[levelStr] = filtered;
+        const classSpellList = SPELL_LIST_BY_CLASS[character.class];
+        if (!classSpellList) return {};
+
+        const filteredAndGrouped = Object.values(SPELL_DETAILS)
+            .filter(spell => 
+                classSpellList.includes(spell.name) &&
+                spell.level <= maxSpellLevel &&
+                spell.name.toLowerCase().includes(spellSearchTerm.toLowerCase())
+            )
+            .reduce((acc, spell) => {
+                const levelStr = spell.level.toString();
+                if (!acc[levelStr]) {
+                    acc[levelStr] = [];
                 }
-            }
+                acc[levelStr].push(spell.name);
+                return acc;
+            }, {} as Record<string, string[]>);
+
+        // Sort spells within each level
+        for (const level in filteredAndGrouped) {
+            filteredAndGrouped[level].sort();
         }
-        return spells;
-    }, [maxSpellLevel, spellSearchTerm]);
+        
+        return filteredAndGrouped;
+    }, [character.class, maxSpellLevel, spellSearchTerm]);
 
     // --- FEATURE RESOLUTION LOGIC ---
     const groupedFeatures = useMemo(() => {
@@ -302,6 +343,34 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
         return groups;
     }, [character]);
 
+    const handleDeleteEquipment = (indexToRemove: number) => {
+        const newEquipment = character.equipment.filter((_, index) => index !== indexToRemove);
+        onCharacterUpdate({ ...character, equipment: newEquipment });
+    };
+
+    const handleSaveNote = (noteToSave: { title: string, content: string }) => {
+        let newNotes: Note[];
+        if (editingNote) { // Editing existing note
+            newNotes = character.notes.map(n => 
+                n.id === editingNote.id ? { ...n, ...noteToSave } : n
+            );
+        } else { // Adding new note
+            const newNote: Note = {
+                id: crypto.randomUUID(),
+                title: noteToSave.title || 'Untitled Note',
+                content: noteToSave.content
+            };
+            newNotes = [...(character.notes || []), newNote];
+        }
+        onCharacterUpdate({ ...character, notes: newNotes });
+        setShowNoteModal(false);
+        setEditingNote(null);
+    };
+
+    const handleDeleteNote = (noteId: string) => {
+        const newNotes = (character.notes || []).filter(n => n.id !== noteId);
+        onCharacterUpdate({ ...character, notes: newNotes });
+    };
 
     const calculateAutoAC = (charClass: string, stats: Record<Ability, number>, armorName: string, weapons: Weapon[]) => {
         const hasShield = weapons.some(w => w.name === 'Shield') || armorName.includes('Shield');
@@ -458,10 +527,13 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
         const currentSpells = character.spellcasting?.known || [];
         if (!currentSpells.includes(spellName)) {
             const newSpells = [...currentSpells, spellName].sort();
-            onCharacterUpdate({
-                ...character,
-                spellcasting: { ...(character.spellcasting || { ability: 'INT', slots: {}, known: [] }), known: newSpells }
-            });
+            const currentAbility = character.spellcasting?.ability || spellcastingAbility;
+            if (currentAbility) {
+                onCharacterUpdate({
+                    ...character,
+                    spellcasting: { ...(character.spellcasting || { slots: {}, known: [] }), ability: currentAbility, known: newSpells }
+                });
+            }
         }
         setShowSpellModal(false);
         setCustomSpellName('');
@@ -543,6 +615,8 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
             </div>
         );
     };
+
+    const allSpellsFull = spellcastingAbility ? (currentCantripsCount >= maxCantrips && currentLeveledSpellsCount >= maxLeveledSpells) : true;
 
     return (
         <div className="min-h-screen bg-stone-950 font-sans pb-32" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
@@ -664,8 +738,41 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                     {activeTab === 'inventory' && (
                         <div key="inventory" className={`space-y-6 ${animationClass}`}>
                             <SectionHeader icon={<Backpack size={16}/>} title="Equipment" />
-                            <div className="bg-stone-900 border border-stone-800 rounded-2xl overflow-hidden">{character.equipment.map((item, i) => (<div key={i} className="px-5 py-4 border-b border-stone-800 last:border-0 flex items-center justify-between hover:bg-stone-800/50 transition-colors"><span className="text-stone-300 font-medium">{item}</span><div className="w-1.5 h-1.5 rounded-full bg-stone-700"></div></div>))}<button className="w-full py-4 border border-dashed border-stone-700 text-stone-500 rounded-xl hover:bg-stone-900/50 transition-colors text-sm font-medium">+ Add Item</button></div>
-                            <div className="mt-8 pt-6 border-t border-stone-800"><SectionHeader icon={<Scroll size={16}/>} title="Backstory" /><div className="bg-stone-900/30 p-5 rounded-xl border border-stone-800/50 relative"><p className="text-stone-400 text-sm leading-7 font-serif italic">"{character.backstory}"</p></div></div>
+                            <div className="bg-stone-900 border border-stone-800 rounded-2xl overflow-hidden">
+                                {character.equipment.map((item, i) => (
+                                    <div key={i} className="px-5 py-4 border-b border-stone-800 last:border-0 flex items-center justify-between group hover:bg-stone-800/50 transition-colors">
+                                        <span className="text-stone-300 font-medium">{item}</span>
+                                        <button 
+                                            onClick={() => handleDeleteEquipment(i)}
+                                            className="text-stone-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            title="Delete Item"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                                <button className="w-full py-4 border border-dashed border-stone-700 text-stone-500 rounded-xl hover:bg-stone-900/50 transition-colors text-sm font-medium">+ Add Item</button>
+                            </div>
+                            
+                            <div className="mt-8 pt-6 border-t border-stone-800">
+                                <SectionHeader icon={<Notebook size={16}/>} title="Notes" />
+                                <div className="space-y-3">
+                                    {(character.notes || []).map(note => (
+                                        <NoteCard 
+                                            key={note.id} 
+                                            note={note} 
+                                            onEdit={() => { setEditingNote(note); setShowNoteModal(true); }}
+                                            onDelete={() => handleDeleteNote(note.id)}
+                                        />
+                                    ))}
+                                </div>
+                                <button 
+                                    onClick={() => { setEditingNote(null); setShowNoteModal(true); }}
+                                    className="w-full mt-3 py-3 border border-dashed border-stone-700 text-stone-500 rounded-xl hover:bg-stone-900/50 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                                >
+                                    <Plus size={16} /> Add Note
+                                </button>
+                            </div>
                         </div>
                     )}
                     {activeTab === 'spells' && (
@@ -678,16 +785,23 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                                     <SpellStatCard label="Attack" value={spellAttackBonus !== null ? formatMod(spellAttackBonus) : null} />
                                 </div>
                             ) : null}
+
+                            {spellcastingAbility && (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <SpellStatCard label="Cantrips Known" value={`${currentCantripsCount} / ${maxCantrips}`} />
+                                    <SpellStatCard label={PREPARED_CASTERS.includes(character.class) ? "Spells Prepared" : "Spells Known"} value={`${currentLeveledSpellsCount} / ${maxLeveledSpells}`} />
+                                </div>
+                            )}
+
                             {(!character.spellcasting || !character.spellcasting.known || character.spellcasting.known.length === 0) ? (
                                 <div className="text-center py-10 bg-stone-900/30 rounded-2xl border border-stone-800 border-dashed">
                                     <BookOpen size={48} className="mx-auto text-stone-700 mb-4" strokeWidth={1} />
                                     <h4 className="text-stone-400 font-serif font-bold text-lg mb-2">{spellcastingAbility ? 'Grimoire is Empty' : 'Not a Spellcaster'}</h4>
                                     <p className="text-stone-600 text-sm max-w-xs mx-auto mb-6">{spellcastingAbility ? 'Add cantrips or leveled spells to begin weaving magic.' : 'This character does not have spellcasting abilities from their class.'}</p>
-                                    {spellcastingAbility && <button onClick={() => setShowSpellModal(true)} className="bg-indigo-900/30 hover:bg-indigo-900/50 text-indigo-400 border border-indigo-500/30 px-6 py-3 rounded-xl font-bold transition-all">+ Add First Spell</button>}
+                                    {spellcastingAbility && <button onClick={() => setShowSpellModal(true)} disabled={allSpellsFull} className="bg-indigo-900/30 hover:bg-indigo-900/50 text-indigo-400 border border-indigo-500/30 px-6 py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-indigo-900/30">+ Add First Spell</button>}
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    <div className="text-center"><span className="text-xs font-bold text-stone-500 uppercase">Total Spells Known: {character.spellcasting.known.length}</span></div>
                                     {Object.keys(knownSpellsByLevel).sort((a,b) => (a === 'custom' ? 1 : b === 'custom' ? -1 : parseInt(a) - parseInt(b))).map(level => (
                                         <div key={level}>
                                             <h4 className="text-stone-400 font-bold uppercase text-xs tracking-wider mb-2 flex justify-between items-center">
@@ -704,7 +818,9 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
                                             </div>
                                         </div>
                                     ))}
-                                    <button onClick={() => setShowSpellModal(true)} className="w-full py-3 border border-dashed border-stone-700 text-stone-500 rounded-xl hover:bg-stone-900/50 transition-colors text-sm font-medium flex items-center justify-center gap-2"><Plus size={16} /> Add Spell</button>
+                                    <button onClick={() => setShowSpellModal(true)} disabled={allSpellsFull} className="w-full py-3 border border-dashed border-stone-700 text-stone-500 rounded-xl hover:bg-stone-900/50 transition-colors text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent">
+                                        <Plus size={16} /> {allSpellsFull ? 'Spellbook Full' : 'Add Spell'}
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -722,7 +838,8 @@ const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onBack, onCh
             </div>
             {viewingSpell && <SpellDetailModal spellName={viewingSpell} onClose={() => setViewingSpell(null)} />}
             {showHpModal && <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4"><div className="absolute inset-0 bg-stone-950/90 backdrop-blur-md" onClick={() => setShowHpModal(false)} /><div className="bg-stone-900 w-full max-w-sm rounded-t-3xl sm:rounded-2xl border border-stone-800 relative z-10 flex flex-col shadow-2xl animate-in slide-in-from-bottom-10 p-6"><div className="flex justify-between items-center mb-6"><h3 className="font-bold text-stone-100 text-xl font-serif">Manage Health</h3><button onClick={() => setShowHpModal(false)} className="p-2 hover:bg-stone-800 rounded-full text-stone-500"><X size={24}/></button></div><div className="mb-6"><div className="flex justify-between text-sm mb-2 font-bold"><span className="text-stone-400">Current HP</span><span className="text-stone-200">{character.currentHp} <span className="text-stone-600">/</span> {character.maxHp}</span></div><div className="h-4 bg-stone-800 rounded-full overflow-hidden border border-stone-700"><div className="h-full bg-gradient-to-r from-red-600 to-red-500 transition-all duration-500 ease-out" style={{ width: `${Math.min(100, (character.currentHp / character.maxHp) * 100)}%` }}/></div></div><div className="relative mb-6"><input ref={hpInputRef} type="number" pattern="[0-9]*" className="w-full bg-stone-950 border border-stone-800 rounded-2xl py-6 text-center text-4xl font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-600 placeholder-stone-700" placeholder="0" value={hpInput} onChange={(e) => setHpInput(e.target.value)} /><div className="absolute inset-x-0 bottom-2 text-center text-[10px] text-stone-600 font-bold uppercase tracking-widest pointer-events-none">Amount</div></div><div className="flex gap-3"><button onClick={() => handleHpChange('damage')} className="flex-1 bg-red-950/40 hover:bg-red-900/50 border border-red-900/50 text-red-500 py-4 rounded-xl font-bold flex flex-col items-center gap-1 transition-all active:scale-95"><Skull size={24} /><span>Damage</span></button><button onClick={() => handleHpChange('heal')} className="flex-1 bg-green-950/40 hover:bg-green-900/50 border border-green-900/50 text-green-500 py-4 rounded-xl font-bold flex flex-col items-center gap-1 transition-all active:scale-95"><Heart size={24} /><span>Heal</span></button></div></div></div>}
-            {showSpellModal && <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"><div className="absolute inset-0 bg-stone-950/90 backdrop-blur-sm" onClick={() => setShowSpellModal(false)} /><div className="bg-stone-900 w-full max-w-lg h-[85vh] rounded-2xl border border-stone-800 relative z-10 flex flex-col shadow-2xl animate-in zoom-in-95"><div className="p-4 border-b border-stone-800 flex justify-between items-center shrink-0"><h3 className="font-bold text-stone-100 text-lg font-serif">Add Spell</h3><button onClick={() => setShowSpellModal(false)} className="p-2 hover:bg-stone-800 rounded-full"><X size={20}/></button></div><div className="p-4 border-b border-stone-800 space-y-3 shrink-0"><input type="text" placeholder="Search available spells..." className="w-full bg-stone-950 border border-stone-800 rounded-xl p-3 text-stone-200 focus:outline-none focus:ring-1 focus:ring-indigo-500" value={spellSearchTerm} onChange={(e) => setSpellSearchTerm(e.target.value)} /><div className="flex gap-2"><input type="text" placeholder="Or add a custom spell..." className="flex-1 bg-stone-950 border border-stone-800 rounded-xl p-3 text-stone-200 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" value={customSpellName} onChange={(e) => setCustomSpellName(e.target.value)} /><button onClick={() => handleAddSpell(customSpellName)} disabled={!customSpellName.trim()} className="px-4 bg-stone-800 text-stone-200 font-bold rounded-xl border border-stone-700 disabled:opacity-50">Add</button></div></div><div className="overflow-y-auto p-2 custom-scrollbar flex-1">{Object.keys(availableSpellsForModal).length > 0 ? (Object.keys(availableSpellsForModal).sort().map(level => (<div key={level} className="mb-3"><h5 className="px-2 mb-1 text-xs font-bold uppercase text-stone-500 tracking-wider">{level === '0' ? 'Cantrips' : `Level ${level}`}</h5><div className="space-y-1">{availableSpellsForModal[level].map(spell => { const isExpanded = expandedSpellInModal === spell; const spellDetails = SPELL_DETAILS[spell]; return (<div key={spell} className={`bg-stone-800/50 rounded-lg border border-stone-700/80 overflow-hidden transition-all duration-300`}> <button onClick={() => setExpandedSpellInModal(isExpanded ? null : spell)} className="w-full text-left p-3 flex justify-between items-center group"> <span className="font-medium text-stone-300 group-hover:text-indigo-400">{spell}</span> <ChevronDown size={16} className={`text-stone-600 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} /> </button> {isExpanded && ( <div className="px-4 pb-4 animate-in fade-in duration-300"> <div className="border-t border-stone-700/80 pt-3 space-y-3"> {spellDetails ? <p className="text-xs text-stone-400 italic leading-relaxed">{spellDetails.description.split('\n')[0]}</p> : <p className="text-xs text-stone-500 italic">No details available for this spell.</p>} <button onClick={() => handleAddSpell(spell)} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-sm flex items-center justify-center gap-2"> <Plus size={16}/> Add to Grimoire </button> </div> </div> )} </div>);})}</div></div>))) : (<div className="p-8 text-center text-stone-500 italic">No matching spells found for your level.</div>)}</div></div></div>}
+            {showNoteModal && <NoteModal note={editingNote} onClose={() => { setShowNoteModal(false); setEditingNote(null); }} onSave={handleSaveNote} />}
+            {showSpellModal && <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"><div className="absolute inset-0 bg-stone-950/90 backdrop-blur-sm" onClick={() => setShowSpellModal(false)} /><div className="bg-stone-900 w-full max-w-lg h-[85vh] rounded-2xl border border-stone-800 relative z-10 flex flex-col shadow-2xl animate-in zoom-in-95"><div className="p-4 border-b border-stone-800 flex justify-between items-center shrink-0"><h3 className="font-bold text-stone-100 text-lg font-serif">Add Spell</h3><button onClick={() => setShowSpellModal(false)} className="p-2 hover:bg-stone-800 rounded-full"><X size={20}/></button></div><div className="p-4 border-b border-stone-800 space-y-3 shrink-0"><input type="text" placeholder="Search available spells..." className="w-full bg-stone-950 border border-stone-800 rounded-xl p-3 text-stone-200 focus:outline-none focus:ring-1 focus:ring-indigo-500" value={spellSearchTerm} onChange={(e) => setSpellSearchTerm(e.target.value)} /><div className="flex gap-2"><input type="text" placeholder="Or add a custom spell..." className="flex-1 bg-stone-950 border border-stone-800 rounded-xl p-3 text-stone-200 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" value={customSpellName} onChange={(e) => setCustomSpellName(e.target.value)} /><button onClick={() => handleAddSpell(customSpellName)} disabled={!customSpellName.trim()} className="px-4 bg-stone-800 text-stone-200 font-bold rounded-xl border border-stone-700 disabled:opacity-50">Add</button></div></div><div className="overflow-y-auto p-2 custom-scrollbar flex-1">{Object.keys(availableSpellsForModal).length > 0 ? (Object.keys(availableSpellsForModal).sort().map(level => (<div key={level} className="mb-3"><h5 className="px-2 mb-1 text-xs font-bold uppercase text-stone-500 tracking-wider">{level === '0' ? 'Cantrips' : `Level ${level}`}</h5><div className="space-y-1">{availableSpellsForModal[level].map(spell => { const isExpanded = expandedSpellInModal === spell; const spellDetails = SPELL_DETAILS[spell]; const isCantrip = spellDetails?.level === 0; const cantripsFull = isCantrip && currentCantripsCount >= maxCantrips; const leveledSpellsFull = !isCantrip && currentLeveledSpellsCount >= maxLeveledSpells; const alreadyKnown = character.spellcasting?.known.includes(spell); return (<div key={spell} className={`bg-stone-800/50 rounded-lg border border-stone-700/80 overflow-hidden transition-all duration-300`}> <button onClick={() => setExpandedSpellInModal(isExpanded ? null : spell)} className="w-full text-left p-3 flex justify-between items-center group"> <span className="font-medium text-stone-300 group-hover:text-indigo-400">{spell}</span> <ChevronDown size={16} className={`text-stone-600 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} /> </button> {isExpanded && ( <div className="px-4 pb-4 animate-in fade-in duration-300"> <div className="border-t border-stone-700/80 pt-3 space-y-3"> {spellDetails ? <p className="text-xs text-stone-400 italic leading-relaxed">{spellDetails.description.split('\n')[0]}</p> : <p className="text-xs text-stone-500 italic">No details available for this spell.</p>} <button onClick={() => handleAddSpell(spell)} disabled={cantripsFull || leveledSpellsFull || alreadyKnown} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-sm flex items-center justify-center gap-2 disabled:bg-stone-700 disabled:cursor-not-allowed"> <Plus size={16}/> {alreadyKnown ? 'Known' : (cantripsFull || leveledSpellsFull) ? 'Limit Reached' : 'Add to Grimoire'} </button> </div> </div> )} </div>);})}</div></div>))) : (<div className="p-8 text-center text-stone-500 italic">No matching spells found for your class and level.</div>)}</div></div></div>}
             {showLevelUpModal && <div className="fixed inset-0 z-[70] flex items-center justify-center p-4"><div className="absolute inset-0 bg-stone-950/90 backdrop-blur-md" onClick={() => setShowLevelUpModal(false)} /><div className="bg-stone-900 w-full max-w-md max-h-[90vh] rounded-2xl border-2 border-amber-600/50 relative z-10 flex flex-col shadow-2xl animate-in zoom-in-95 overflow-hidden"><div className="bg-gradient-to-br from-amber-700 to-amber-900 p-6 text-center relative overflow-hidden shrink-0"><Crown className="absolute -right-4 -top-4 text-amber-500/20 w-32 h-32 rotate-12" /><h3 className="font-serif font-bold text-white text-2xl relative z-10">Level Up!</h3><p className="text-amber-100/80 text-sm relative z-10">Advancing to Level {nextLevel}</p><div className="flex justify-center gap-2 mt-4 relative z-10"><div className={`w-2 h-2 rounded-full ${levelUpStep >= 1 ? 'bg-white' : 'bg-white/30'}`} /><div className={`w-2 h-2 rounded-full ${levelUpStep >= 2 ? 'bg-white' : 'bg-white/30'}`} />{(needsSubclass || needsAsi) && (<div className={`w-2 h-2 rounded-full ${levelUpStep >= 3 ? 'bg-white' : 'bg-white/30'}`} />)}<div className={`w-2 h-2 rounded-full ${levelUpStep >= 4 ? 'bg-white' : 'bg-white/30'}`} /></div></div><div className="p-6 overflow-y-auto custom-scrollbar flex-1">{levelUpStep === 1 && <div className="space-y-6 animate-in slide-in-from-right-4"><h4 className="text-xl font-serif font-bold text-stone-200">Vitality & Proficiency</h4><div className="bg-stone-950/50 p-4 rounded-xl border border-stone-800"><label className="text-stone-400 text-xs font-bold uppercase tracking-wider mb-3 block">Hit Points</label><div className="flex bg-stone-950 rounded-xl p-1 border border-stone-800 mb-4"><button onClick={() => setHpIncreaseMode('fixed')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${hpIncreaseMode === 'fixed' ? 'bg-stone-800 text-amber-500 shadow' : 'text-stone-500'}`}>Fixed ({fixedHpIncrease})</button><button onClick={() => setHpIncreaseMode('manual')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${hpIncreaseMode === 'manual' ? 'bg-stone-800 text-amber-500 shadow' : 'text-stone-500'}`}>Manual</button></div>{hpIncreaseMode === 'manual' && (<div className="flex items-center gap-2"><input type="number" min="1" max={hitDie} value={manualHpInput || ''} onChange={(e) => setManualHpInput(parseInt(e.target.value) || 0)} className="flex-1 bg-stone-950 border border-stone-800 rounded-xl p-3 text-center text-lg font-bold text-white focus:ring-1 focus:ring-amber-600 outline-none" placeholder={`Roll d${hitDie}`} /><span className="font-bold text-stone-500">+ {conMod} (CON)</span></div>)}<div className="text-center text-stone-300 text-sm font-bold mt-2">Total: +{hpIncreaseMode === 'fixed' ? fixedHpIncrease : manualHpTotal} HP</div></div><div className="bg-stone-950/50 p-4 rounded-xl border border-stone-800 flex justify-between items-center"><span className="text-stone-400 text-sm font-bold">Proficiency Bonus</span><div className="flex items-center gap-2"><span className="text-stone-600 text-sm">+{character.proficiencyBonus}</span><ArrowRight size={14} className="text-stone-600"/><span className="text-amber-500 font-bold text-lg">+{nextPB}</span></div></div></div>}{levelUpStep === 2 && <div className="space-y-6 animate-in slide-in-from-right-4"><h4 className="text-xl font-serif font-bold text-stone-200">New Class Features</h4>{levelData.features.length > 0 ? <div className="space-y-3">{levelData.features.map((feat, i) => { if (feat === 'Subclass Feature') { const currentSubclass = getCharacterSubclass(character); if (currentSubclass) { const classData = SUBCLASS_OPTIONS[character.class]; const subclassData = classData?.find(s => s.name === currentSubclass); const specificFeatures = subclassData?.features[nextLevel]; if (specificFeatures) { return specificFeatures.map((scFeat, j) => (<div key={`${i}-${j}`} className="bg-stone-950/50 p-4 rounded-xl border border-stone-800 flex gap-3"><div className="p-2 bg-amber-500/10 rounded-lg text-amber-600 h-fit"><Sparkles size={18} /></div><div><div className="font-bold text-amber-500">{scFeat.name}</div><div className="text-xs text-stone-500 mb-1">Subclass Feature ({currentSubclass})</div><div className="text-sm text-stone-300 leading-relaxed">{scFeat.description}</div></div></div>)); } } else { return (<div key={i} className="bg-stone-950/50 p-4 rounded-xl border border-stone-800 flex gap-3 opacity-80"><div className="p-2 bg-stone-800 rounded-lg text-stone-500 h-fit"><Sparkles size={18} /></div><div><div className="font-bold text-stone-400">Subclass Features</div><div className="text-xs text-stone-500 mt-1">Select your Subclass in the next step to see what you gain!</div></div></div>) } } const desc = getFeatureDescription(feat); return (<div key={i} className="bg-stone-950/50 p-4 rounded-xl border border-stone-800 flex gap-3"><div className="p-2 bg-amber-500/10 rounded-lg text-amber-600 h-fit"><Sparkles size={18} /></div><div><div className="font-bold text-stone-200">{feat}</div><div className="text-xs text-stone-500 mt-1 mb-1">Class Feature (Level {nextLevel})</div>{desc && <div className="text-sm text-stone-400 leading-relaxed">{desc}</div>}</div></div>)})}</div> : <div className="text-center py-8 text-stone-500 italic">No generic class features this level. Check for Subclass or Feat options next!</div>}</div>}{levelUpStep === 3 && (needsSubclass || needsAsi) && <div className="space-y-6 animate-in slide-in-from-right-4"><h4 className="text-xl font-serif font-bold text-stone-200">Heroic Path</h4>{needsSubclass && <div className="space-y-3"><label className="text-stone-400 text-xs font-bold uppercase tracking-wider block">Choose Subclass</label><div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar pr-1">{(SUBCLASS_OPTIONS[character.class] || []).map(sc => { const isSelected = selectedSubclass === sc.name; const gainedFeatures = sc.features[nextLevel]; return (<button key={sc.name} onClick={() => setSelectedSubclass(sc.name)} className={`w-full text-left p-3 rounded-xl border transition-all ${isSelected ? 'bg-amber-900/20 border-amber-600 ring-1 ring-amber-600/30' : 'bg-stone-950 border-stone-800 hover:border-stone-600'}`}><div className="flex justify-between items-start mb-1"><div className="font-bold text-stone-200 text-sm">{sc.name}</div>{isSelected && <Check size={16} className="text-amber-500"/>}</div><div className="text-xs text-stone-500 mb-2">{sc.description}</div>{isSelected && gainedFeatures && (<div className="mt-3 space-y-2"><div className="text-[10px] uppercase font-bold text-amber-500 tracking-wider">Gains:</div>{gainedFeatures.map((gf, idx) => (<div key={idx} className="bg-stone-900/80 p-2 rounded border border-stone-800/50"><span className="text-xs font-bold text-stone-300 block">{gf.name}</span><span className="text-[10px] text-stone-400">{gf.description}</span></div>))}</div>)}</button>)})}</div></div>}{needsAsi && <div className="space-y-4"><label className="text-stone-400 text-xs font-bold uppercase tracking-wider block">Ability Score Improvement</label><div className="flex gap-2 mb-4"><button onClick={() => { setImprovementType('asi'); setSelectedFeat(null); }} className={`flex-1 p-3 rounded-xl border font-bold text-sm transition-all ${improvementType === 'asi' ? 'bg-amber-900/40 border-amber-600 text-amber-500' : 'bg-stone-950 border-stone-800 text-stone-400 hover:border-stone-600'}`}>Boost Ability Scores</button><button onClick={() => { setImprovementType('feat'); setSelectedFeat(null); }} className={`flex-1 p-3 rounded-xl border font-bold text-sm transition-all ${improvementType === 'feat' ? 'bg-indigo-900/40 border-indigo-500 text-indigo-400' : 'bg-stone-950 border-stone-800 text-stone-400 hover:border-stone-600'}`}>Choose a Feat</button></div>{improvementType === 'asi' && <div className="bg-stone-950/50 p-4 rounded-xl border border-stone-800 space-y-4 animate-in fade-in slide-in-from-top-2"><div className="flex gap-2 text-xs font-bold text-stone-400 mb-2"><button onClick={() => setAsiSelection(p => ({ ...p, type: '+2' }))} className={`flex-1 py-2 rounded-lg border transition-all ${asiSelection.type === '+2' ? 'bg-amber-600 text-white border-amber-500' : 'bg-stone-900 border-stone-700 hover:bg-stone-800'}`}>+2 to One Stat</button><button onClick={() => setAsiSelection(p => ({ ...p, type: '+1+1' }))} className={`flex-1 py-2 rounded-lg border transition-all ${asiSelection.type === '+1+1' ? 'bg-amber-600 text-white border-amber-500' : 'bg-stone-900 border-stone-700 hover:bg-stone-800'}`}>+1 to Two Stats</button></div><select className="w-full bg-stone-900 border border-stone-700 rounded-lg p-3 text-sm text-stone-200 outline-none focus:border-amber-600" value={asiSelection.score1} onChange={(e) => setAsiSelection(p => ({...p, score1: e.target.value as Ability}))}><option value="">Select Ability...</option>{Object.keys(ABILITY_NAMES).map(k => <option key={k} value={k}>{k} ({character.abilityScores[k as Ability]})</option>)}</select>{asiSelection.type === '+1+1' && (<select className="w-full bg-stone-900 border border-stone-700 rounded-lg p-3 text-sm text-stone-200 outline-none focus:border-amber-600" value={asiSelection.score2} onChange={(e) => setAsiSelection(p => ({...p, score2: e.target.value as Ability}))}><option value="">Select Second Ability...</option>{Object.keys(ABILITY_NAMES).map(k => <option key={k} value={k}>{k} ({character.abilityScores[k as Ability]})</option>)}</select>)}</div>}{improvementType === 'feat' && <div className="space-y-4 animate-in fade-in slide-in-from-top-2"><select className="w-full bg-stone-950 border border-stone-800 rounded-xl p-3 text-stone-200 mb-2 focus:ring-1 focus:ring-indigo-500 outline-none" onChange={(e) => setSelectedFeat(e.target.value)} value={selectedFeat || ''}><option value="" disabled>Select a feat...</option>{FEAT_OPTIONS.filter(f => f.name !== 'Ability Score Improvement').map(f => (<option key={f.name} value={f.name}>{f.name}</option>))}</select>{selectedFeat && (<div className="bg-indigo-950/20 p-4 rounded-xl border border-indigo-900/50"><div className="font-bold text-indigo-300 text-sm mb-1">{selectedFeat}</div><div className="text-xs text-stone-400 leading-relaxed">{FEAT_OPTIONS.find(f => f.name === selectedFeat)?.description}</div></div>)}</div>}</div>}</div>}{levelUpStep === 4 && <div className="space-y-6 animate-in slide-in-from-right-4 text-center"><div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center text-green-500 mx-auto mb-2 border border-green-500/50"><Check size={32} /></div><h4 className="text-xl font-serif font-bold text-stone-200">Ready to Ascend</h4><p className="text-stone-500 text-sm">Review your changes before making them permanent.</p><div className="bg-stone-950/50 p-4 rounded-xl border border-stone-800 text-left space-y-2 text-sm"><div className="flex justify-between"><span className="text-stone-500">New Level</span><span className="text-stone-200 font-bold">{nextLevel}</span></div><div className="flex justify-between"><span className="text-stone-500">HP Gained</span><span className="text-stone-200 font-bold">+{hpIncreaseMode === 'fixed' ? Math.max(1, (hitDie / 2) + 1 + (asiSelection.type === '+2' && asiSelection.score1 === 'CON' ? getModifier(character.abilityScores.CON + 2) : getModifier(character.abilityScores.CON))) : manualHpTotal}</span></div>{selectedSubclass && (<div className="flex justify-between"><span className="text-stone-500">Subclass</span><span className="text-amber-500 font-bold">{selectedSubclass}</span></div>)}{improvementType === 'feat' && selectedFeat && (<div className="flex justify-between"><span className="text-stone-500">Feat Gained</span><span className="text-indigo-400 font-bold">{selectedFeat}</span></div>)}{improvementType === 'asi' && (<div className="flex justify-between"><span className="text-stone-500">Stats Gained</span><span className="text-amber-500 font-bold">{asiSelection.type === '+2' && asiSelection.score1 ? `+2 ${asiSelection.score1}` : ''}{asiSelection.type === '+1+1' && asiSelection.score1 && asiSelection.score2 ? `+1 ${asiSelection.score1}, +1 ${asiSelection.score2}` : ''}</span></div>)}</div></div>}</div><div className="p-6 border-t border-stone-800 flex gap-3 bg-stone-900 shrink-0">{levelUpStep > 1 && (<button onClick={() => setLevelUpStep(p => p - 1)} className="px-4 py-3 rounded-xl border border-stone-700 text-stone-400 hover:bg-stone-800 font-bold">Back</button>)}{levelUpStep < 4 ? (<button onClick={() => { let next = levelUpStep + 1; if (next === 3 && !needsSubclass && !needsAsi) next = 4; setLevelUpStep(next); }} disabled={(levelUpStep === 3 && needsSubclass && !selectedSubclass) || (levelUpStep === 3 && needsAsi && !improvementType) || (levelUpStep === 3 && needsAsi && improvementType === 'feat' && !selectedFeat) || (levelUpStep === 3 && needsAsi && improvementType === 'asi' && asiSelection.type === '+2' && !asiSelection.score1) || (levelUpStep === 3 && needsAsi && improvementType === 'asi' && asiSelection.type === '+1+1' && (!asiSelection.score1 || !asiSelection.score2))} className="flex-1 py-3 bg-stone-100 hover:bg-white text-stone-950 font-bold rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">Next Step</button>) : (<button onClick={handleLevelUpConfirm} className="flex-1 py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl shadow-lg shadow-amber-900/20 active:scale-95 transition-all">Confirm Level Up</button>)}</div></div></div>}
             {showWeaponModal && <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4"><div className="absolute inset-0 bg-stone-950/90 backdrop-blur-sm" onClick={() => setShowWeaponModal(false)} /><div className="bg-stone-900 w-full max-w-lg h-[80vh] rounded-t-3xl sm:rounded-2xl border border-stone-800 relative z-10 flex flex-col shadow-2xl animate-in slide-in-from-bottom-10"><div className="p-4 border-b border-stone-800 flex justify-between items-center"><h3 className="font-bold text-stone-100 text-lg">Add Weapon</h3><button onClick={() => setShowWeaponModal(false)} className="p-2 hover:bg-stone-800 rounded-full"><X size={20}/></button></div><div className="p-4 border-b border-stone-800"><input type="text" placeholder="Search weapons..." className="w-full bg-stone-950 border border-stone-800 rounded-xl p-3 text-stone-200 focus:outline-none focus:ring-1 focus:ring-amber-600" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div><div className="overflow-y-auto p-2 custom-scrollbar flex-1">{filteredWeapons.map(key => { const w = ALL_WEAPONS[key]; return (<button key={key} onClick={() => handleAddWeapon(key)} className="w-full text-left p-4 hover:bg-stone-800 border-b border-stone-800 last:border-0 flex justify-between items-center group transition-colors"><div><div className="font-bold text-stone-200 group-hover:text-amber-500">{w.name}</div><div className="text-xs text-stone-500">{w.type} • {w.properties.join(', ')}</div></div><div className="text-right"><div className="font-bold text-amber-600">{w.damage}</div><div className="text-[10px] text-stone-500 uppercase font-bold tracking-wider">{w.mastery}</div></div></button>) })}</div></div></div>}
             {showArmorModal && <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4"><div className="absolute inset-0 bg-stone-950/90 backdrop-blur-sm" onClick={() => setShowArmorModal(false)} /><div className="bg-stone-900 w-full max-w-sm rounded-t-3xl sm:rounded-2xl border border-stone-800 relative z-10 flex flex-col shadow-2xl animate-in slide-in-from-bottom-10"><div className="p-4 border-b border-stone-800 flex justify-between items-center"><h3 className="font-bold text-stone-100 text-lg">Equip Armor</h3><button onClick={() => setShowArmorModal(false)} className="p-2 hover:bg-stone-800 rounded-full"><X size={20}/></button></div><div className="overflow-y-auto p-2 custom-scrollbar max-h-[60vh]">{Object.entries(ARMOR_OPTIONS).map(([name, armor]) => (<button key={name} onClick={() => handleEquipArmor(name)} className="w-full text-left p-4 hover:bg-stone-800 border-b border-stone-800 last:border-0 flex justify-between items-center group"><div><div className="font-bold text-stone-200 group-hover:text-amber-500">{name}</div><div className="text-xs text-stone-500">{armor.type} {armor.stealthDisadvantage && '• Stealth Disadv.'}</div></div><div className="flex flex-col items-end"><span className="font-bold text-stone-100 text-lg">{armor.type === 'Shield' ? `+${armor.baseAC}` : armor.baseAC}</span><span className="text-[10px] text-stone-500 uppercase font-bold">AC</span></div></button>))}</div></div></div>}
@@ -752,6 +869,69 @@ const SpellStatCard: React.FC<{ label: string; value: string | number | null }> 
         <span className="text-2xl font-serif font-bold text-indigo-400">{value ?? '-'}</span>
     </div>
 );
+
+const NoteCard: React.FC<{note: Note, onEdit: () => void, onDelete: () => void}> = ({note, onEdit, onDelete}) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    return (
+        <div className="bg-stone-900/60 p-4 rounded-xl border border-stone-800/50 transition-colors">
+            <div className="flex justify-between items-start">
+                <button onClick={() => setIsExpanded(!isExpanded)} className="text-left flex-1">
+                    <div className="font-bold text-sm text-stone-200 mb-1">{note.title}</div>
+                    {!isExpanded && <p className="text-stone-500 text-xs leading-relaxed line-clamp-2">{note.content}</p>}
+                </button>
+                <div className="flex gap-1 pl-2">
+                    <button onClick={onEdit} className="text-stone-500 hover:text-amber-500 p-1.5"><PenSquare size={14}/></button>
+                    <button onClick={onDelete} className="text-stone-500 hover:text-red-500 p-1.5"><Trash2 size={14}/></button>
+                </div>
+            </div>
+            {isExpanded && <p className="text-stone-400 text-sm leading-relaxed whitespace-pre-wrap mt-3 border-t border-stone-800/50 pt-3">{note.content}</p>}
+        </div>
+    );
+}
+
+const NoteModal: React.FC<{note: Note | null, onClose: () => void, onSave: (data: {title: string, content: string}) => void}> = ({note, onClose, onSave}) => {
+    const [title, setTitle] = useState(note?.title || '');
+    const [content, setContent] = useState(note?.content || '');
+
+    const handleSave = () => {
+        if (title.trim() || content.trim()) {
+            onSave({title: title.trim() || 'Untitled Note', content: content.trim()});
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-stone-950/90 backdrop-blur-md" onClick={onClose} />
+            <div className="bg-stone-900 w-full max-w-lg rounded-2xl border border-stone-800 relative z-10 flex flex-col shadow-2xl animate-in zoom-in-95 max-h-[80vh]">
+                <div className="p-5 border-b border-stone-800 flex justify-between items-center shrink-0">
+                    <h3 className="font-bold text-stone-100 text-xl font-serif">{note ? 'Edit Note' : 'New Note'}</h3>
+                    <button onClick={onClose} className="p-2 hover:bg-stone-800 rounded-full text-stone-500"><X size={24}/></button>
+                </div>
+                <div className="p-6 flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+                    <input 
+                        type="text"
+                        value={title}
+                        onChange={e => setTitle(e.target.value)}
+                        placeholder="Note Title"
+                        className="w-full bg-stone-950 border border-stone-800 rounded-xl p-3 text-lg font-bold text-stone-100 focus:outline-none focus:ring-1 focus:ring-amber-600"
+                    />
+                    <textarea
+                        value={content}
+                        onChange={e => setContent(e.target.value)}
+                        placeholder="Jot down your thoughts..."
+                        className="w-full flex-1 bg-stone-950 border border-stone-800 rounded-xl p-4 text-base text-stone-300 focus:outline-none focus:ring-1 focus:ring-amber-600 resize-none"
+                    />
+                </div>
+                <div className="p-4 border-t border-stone-800 shrink-0">
+                    <button onClick={handleSave} className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl transition-colors">
+                        Save Note
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const SpellDetailModal: React.FC<{ spellName: string; onClose: () => void }> = ({ spellName, onClose }) => {
     const spell = SPELL_DETAILS[spellName];
 
