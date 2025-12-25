@@ -1,15 +1,18 @@
 
 import React, { useState, useEffect } from 'react';
-import { SPECIES_LIST, CLASS_LIST, BACKGROUNDS_DATA, STANDARD_ARRAY, ABILITY_NAMES, HIT_DIE, CLASS_FEATURES, CLASS_STAT_PRIORITIES, CLASS_DETAILS, SPECIES_DETAILS, ALIGNMENTS, LANGUAGES, CLASS_SKILL_DATA, SKILL_LIST, CLASS_SAVING_THROWS, SPELLCASTING_ABILITY } from '../constants';
+import { SPECIES_LIST, CLASS_LIST, BACKGROUNDS_DATA, STANDARD_ARRAY, ABILITY_NAMES, HIT_DIE, CLASS_FEATURES, CLASS_STAT_PRIORITIES, CLASS_DETAILS, SPECIES_DETAILS, ALIGNMENTS, LANGUAGES, CLASS_SKILL_DATA, SKILL_LIST, CLASS_SAVING_THROWS, SPELLCASTING_ABILITY, FEAT_OPTIONS } from '../constants';
 import { Character, AbilityScores, Ability, Weapon, Skill, DetailData, BackgroundData } from '../types';
 import { generateCharacterName, generateBackstory } from '../services/geminiService';
-import { ChevronRight, Save, Sparkles, Loader2, Wand2, X, Check, GraduationCap, Heart, Shield, Zap, Footprints, Ruler, Star, Medal, Sword, Crown, Scroll, Dna } from 'lucide-react';
+import { ChevronRight, Save, Sparkles, Loader2, Wand2, X, Check, GraduationCap, Heart, Shield, Zap, Footprints, Ruler, Star, Medal, Sword, Crown, Scroll, Dna, Lightbulb } from 'lucide-react';
+
+// Known Origin Feats in D&D 2024
+const ORIGIN_FEAT_NAMES = ['Alert', 'Crafter', 'Healer', 'Lucky', 'Magic Initiate', 'Musician', 'Savage Attacker', 'Skilled', 'Tavern Brawler', 'Tough'];
 
 interface SelectionModalProps {
     title: string;
     options: string[];
     selected: string;
-    variant: 'class' | 'species' | 'background' | 'simple';
+    variant: 'class' | 'species' | 'background' | 'feat' | 'simple';
     onSelect: (value: string) => void;
     onClose: () => void;
 }
@@ -54,6 +57,11 @@ const SelectionModal: React.FC<SelectionModalProps> = ({ title, options, selecte
                                 feat: bg?.feat,
                                 featDesc: bg?.featDescription,
                                 skills: bg?.skills
+                            };
+                        } else if (variant === 'feat') {
+                            const f = FEAT_OPTIONS.find(x => x.name === opt);
+                            details = {
+                                desc: f?.description
                             };
                         }
 
@@ -168,12 +176,13 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
     // Details State (Step 3)
     const [alignment, setAlignment] = useState(ALIGNMENTS[4]); // True Neutral default
     const [language, setLanguage] = useState(LANGUAGES[0]); // Common default
+    const [humanFeat, setHumanFeat] = useState<string>('Skilled'); // Default for Humans
 
     // Proficiency State (Step 4)
     const [selectedClassSkills, setSelectedClassSkills] = useState<Skill[]>([]);
 
     // Modal State
-    const [activeModal, setActiveModal] = useState<'class' | 'species' | 'background' | 'alignment' | 'language' | null>(null);
+    const [activeModal, setActiveModal] = useState<'class' | 'species' | 'background' | 'alignment' | 'language' | 'humanFeat' | null>(null);
 
     // Ability Score Allocation State
     const [scoreMethod, setScoreMethod] = useState<'standard' | 'manual'>('standard');
@@ -308,6 +317,12 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
         const finalSkills = [...currentBackgroundData.skills, ...selectedClassSkills];
         const spellcastingAbility = SPELLCASTING_ABILITY[charClass];
 
+        // Prepare Features
+        const finalFeatures = [...(CLASS_FEATURES[charClass] || [])];
+        if (species === 'Human' && humanFeat) {
+            finalFeatures.push(`Feat: ${humanFeat}`);
+        }
+
         const newCharacter: Character = {
             id: crypto.randomUUID(),
             name: name || 'Unnamed Hero',
@@ -330,7 +345,7 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
             equipment: finalEquipment, 
             languages,
             notes: initialNote ? [{ id: crypto.randomUUID(), title: 'Character Backstory', content: initialNote }] : [],
-            features: CLASS_FEATURES[charClass] || [],
+            features: finalFeatures,
             originFeat: currentBackgroundData.feat,
             currentFocusPoints: charClass === 'Monk' ? 1 : undefined,
             spellcasting: spellcastingAbility ? {
@@ -572,6 +587,25 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
                             </div>
                         </div>
 
+                        {/* Human Feat Selection */}
+                        {species === 'Human' && (
+                            <div className="animate-in fade-in slide-in-from-top-4">
+                                <label className="block text-stone-400 font-bold mb-2 uppercase text-xs tracking-wider flex items-center gap-2">
+                                    <Lightbulb size={12}/> Human Origin Feat
+                                </label>
+                                <button
+                                    onClick={() => setActiveModal('humanFeat')}
+                                    className="w-full bg-stone-800 border border-stone-700 hover:bg-stone-700 text-left rounded-xl p-4 flex justify-between items-center group transition-all"
+                                >
+                                    <div>
+                                        <div className="text-xl font-bold text-stone-200 font-serif mb-1">{humanFeat}</div>
+                                        <div className="text-xs text-stone-500">{FEAT_OPTIONS.find(f => f.name === humanFeat)?.description}</div>
+                                    </div>
+                                    <ChevronRight className="text-stone-500 group-hover:text-amber-500 transition-colors" />
+                                </button>
+                            </div>
+                        )}
+
                         {/* Notes */}
                         <div>
                             <div className="flex justify-between items-center mb-2">
@@ -701,6 +735,13 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
                                 </div>
                             </div>
                             
+                            {species === 'Human' && humanFeat && (
+                                <div className="p-4 rounded-xl border border-stone-800 bg-stone-950/30 text-center mb-4">
+                                    <p className="text-xs text-stone-500 uppercase tracking-widest font-bold mb-1">Human Origin Feat</p>
+                                    <p className="text-stone-300 font-serif font-bold">{humanFeat}</p>
+                                </div>
+                            )}
+
                             <div className="p-4 rounded-xl border border-stone-800 bg-stone-950/30 text-center">
                                 <p className="text-sm text-stone-500 italic">Weapons and Armor can be equipped on your Character Sheet.</p>
                             </div>
@@ -784,6 +825,16 @@ const CharacterCreator: React.FC<CharacterCreatorProps> = ({ onSave, onCancel })
                     selected={language}
                     variant="simple"
                     onSelect={(val) => { setLanguage(val); setActiveModal(null); }}
+                    onClose={() => setActiveModal(null)}
+                />
+            )}
+            {activeModal === 'humanFeat' && (
+                <SelectionModal 
+                    title="Choose Human Origin Feat"
+                    options={ORIGIN_FEAT_NAMES}
+                    selected={humanFeat}
+                    variant="feat"
+                    onSelect={(val) => { setHumanFeat(val); setActiveModal(null); }}
                     onClose={() => setActiveModal(null)}
                 />
             )}
